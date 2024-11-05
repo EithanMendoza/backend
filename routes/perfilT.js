@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const verificarSesion = require('../middleware/tecnicosMiddleware'); // Middleware de autenticación
+const verificarSesion = require('../middleware/tecnicosmiddleware'); // Middleware de autenticación
 
 // Endpoint para crear o actualizar el perfil del técnico
 router.post('/crear-perfilT', verificarSesion, (req, res) => {
