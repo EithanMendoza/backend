@@ -30,6 +30,7 @@ const finalizacion = require('./models/finalizacion');
 const serviciosfinalizadosT = require('./models/serviciosfinalizadosT');
 const progreso = require('./routes/progreso');
 const completado = require('./routes/completado');
+const administrador = require('./models/administrador');
 
 
 
@@ -48,6 +49,7 @@ app.use('/finalizacion', finalizacion);
 app.use ('/serviciosfinalizadosT', serviciosfinalizadosT);
 app.use ('/progreso', progreso);
 app.use ('/completado', completado);
+app.use ('/administrador', administrador);
 
 
 
