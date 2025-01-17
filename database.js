@@ -3,8 +3,8 @@ require('dotenv').config(); // Cargar variables de entorno desde el archivo .env
 
 // Configurar los parámetros de conexión
 const config = {
-    user: 'sqlserver',          // Usuario de la base de datos
-    password: 'admin',          // Contraseña del usuario
+    user: 'juan',          // Usuario de la base de datos
+    password: 'pepe',          // Contraseña del usuario
     server: '34.71.106.69',     // Dirección IP o DNS del host
     database: 'AirTecs',        // Nombre de la base de datos
     options: {
