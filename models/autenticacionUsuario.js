@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const router = express.Router();
-const db = require('../database'); // Conexión a la base de datos
+const { dbConnect, sql } = require('../database'); // Importa dbConnect y sql
 const verificarSesion = require('../middleware/authMiddleware'); // Middleware de sesión
 
 const saltRounds = 10; // Número de rondas de encriptación
@@ -18,14 +18,14 @@ router.post('/register', async (req, res) => {
     // Insertar el usuario en la base de datos
     const query = `
       INSERT INTO usuarios (username, email, password) 
-      VALUES (@username, @email, @password)
+      VALUES (@username, @Email, @password)
     `;
 
-    const pool = await db.connect();
+    const pool = await dbConnect(); // Usa dbConnect
     await pool.request()
-      .input('username', db.VarChar, username)
-      .input('email', db.VarChar, email)
-      .input('password', db.VarChar, hashedPassword)
+      .input('username', sql.VarChar, username)
+      .input('Email', sql.VarChar, email)
+      .input('password', sql.VarChar, hashedPassword)
       .query(query);
 
     res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
@@ -46,9 +46,10 @@ router.post('/login', async (req, res) => {
       FROM usuarios 
       WHERE email = @Email
     `;
-    const pool = await db.connect();
+
+    const pool = await dbConnect();
     const result = await pool.request()
-      .input('Email', db.VarChar, email)
+      .input('Email', sql.VarChar, email)
       .query(query);
 
     if (result.recordset.length === 0) {
@@ -70,8 +71,8 @@ router.post('/login', async (req, res) => {
         VALUES (@user_id, @session_token, GETDATE())
       `;
       await pool.request()
-        .input('user_id', db.BigInt, usuario.id)
-        .input('session_token', db.VarChar, sessionToken)
+        .input('user_id', sql.BigInt, usuario.id)
+        .input('session_token', sql.VarChar, sessionToken)
         .query(loginQuery);
 
       // Inicio de sesión exitoso y sesión registrada
@@ -100,9 +101,10 @@ router.post('/logout', verificarSesion, async (req, res) => {
       SET tiempo_cierre = GETDATE() 
       WHERE session_token = @token AND tiempo_cierre IS NULL
     `;
-    const pool = await db.connect();
+
+    const pool = await dbConnect();
     const result = await pool.request()
-      .input('token', db.VarChar, token)
+      .input('token', sql.VarChar, token)
       .query(query);
 
     if (result.rowsAffected[0] === 0) {
