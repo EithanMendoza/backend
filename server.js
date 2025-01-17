@@ -1,20 +1,22 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+
+// Crear instancia de la aplicación Express
 const app = express();
 const port = 3000;
 
 // Importar la conexión a la base de datos
-require('./database'); // Asegúrate de que la ruta es correcta
+require('./database'); // Verifica que el archivo database.js esté correctamente configurado
 
-const bodyParser = require('body-parser');
 // Habilitar CORS para todas las solicitudes
 app.use(cors());
 
-// Middleware para parsear JSON
+// Middleware para parsear JSON y datos codificados
 app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Rutas
+// Importar rutas y modelos
 const autenticacionTecnicos = require('./models/autenticacionTecnicos');
 const autenticacionUsuario = require('./models/autenticacionUsuario');
 const formulario = require('./routes/formulario');
@@ -32,8 +34,7 @@ const progreso = require('./routes/progreso');
 const completado = require('./routes/completado');
 const administrador = require('./models/administrador');
 
-
-
+// Configurar rutas
 app.use('/autenticacionTecnicos', autenticacionTecnicos);
 app.use('/autenticacionUsuario', autenticacionUsuario);
 app.use('/formulario', formulario);
@@ -46,17 +47,18 @@ app.use('/actualizacion', actualizacion);
 app.use('/pago', pago);
 app.use('/reportar', reportar);
 app.use('/finalizacion', finalizacion);
-app.use ('/serviciosfinalizadosT', serviciosfinalizadosT);
-app.use ('/progreso', progreso);
-app.use ('/completado', completado);
-app.use ('/administrador', administrador);
+app.use('/serviciosfinalizadosT', serviciosfinalizadosT);
+app.use('/progreso', progreso);
+app.use('/completado', completado);
+app.use('/administrador', administrador);
 
+// Middleware global para manejar errores
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Algo salió mal.');
+});
 
-
-
-
-// Iniciar servidor
+// Iniciar el servidor
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
-    

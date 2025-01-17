@@ -1,126 +1,130 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const db = require('../database'); // Conexión a la base de datos
 const verificarSesion = require('../middleware/authMiddleware'); // Middleware de sesión
 
-router.post('/crear-perfil', verificarSesion, (req, res) => {
-    const token = req.headers['authorization'];
+// Crear perfil
+router.post('/crear-perfil', verificarSesion, async (req, res) => {
     const { nombre, apellido, telefono, genero } = req.body;
+    const userId = req.user ? req.user.id : null;
 
-    // Validar que todos los datos del perfil están presentes
-    if (!nombre || !apellido || !telefono || !genero) {
-        return res.status(400).json({ error: 'Todos los datos son obligatorios.' });
+    if (!userId) {
+        return res.status(403).json({ error: 'Acceso no autorizado.' });
     }
-
-    // Obtener el user_id basado en el token de sesión
-    const queryUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-    db.query(queryUserId, [token], (err, results) => {
-        if (err || results.length === 0) {
-            return res.status(401).json({ error: 'Sesión no válida o expirada.' });
-        }
-
-        const userId = results[0].user_id;
-
-        // Insertar el perfil en la base de datos
-        const queryInsertPerfil = `
-            INSERT INTO perfiles (user_id, nombre, apellido, telefono, genero) 
-            VALUES (?, ?, ?, ?, ?)`;
-        
-        db.query(queryInsertPerfil, [userId, nombre, apellido, telefono, genero], (err) => {
-            if (err) return res.status(500).json({ error: 'Error al crear el perfil.' });
-
-            res.status(201).json({ mensaje: 'Perfil creado correctamente.' });
-        });
-    });
-});
-
-// Endpoint para obtener perfil
-router.get('/perfil', verificarSesion, (req, res) => {
-    const token = req.headers['authorization'];
-
-    const queryUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-    db.query(queryUserId, [token], (err, results) => {
-        if (err || results.length === 0) {
-            return res.status(401).json({ error: 'Sesión no válida o expirada.' });
-        }
-
-        const userId = results[0].user_id;
-
-        const queryGetPerfil = 'SELECT nombre, apellido, telefono, genero FROM perfiles WHERE user_id = ?';
-        db.query(queryGetPerfil, [userId], (err, results) => {
-            if (err) return res.status(500).json({ error: 'Error al obtener el perfil.' });
-            if (results.length === 0) {
-                return res.status(404).json({ error: 'Perfil no encontrado.' });
-            }
-
-            res.status(200).json(results[0]);
-        });
-    });
-});
-
-// Endpoint para actualizar perfil
-router.put('/perfilput', verificarSesion, (req, res) => {
-    const token = req.headers['authorization'];
-    const { nombre, apellido, telefono, genero } = req.body;
 
     if (!nombre || !apellido || !telefono || !genero) {
         return res.status(400).json({ error: 'Todos los datos son obligatorios.' });
     }
 
-    const queryUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-    db.query(queryUserId, [token], (err, results) => {
-        if (err || results.length === 0) {
-            return res.status(401).json({ error: 'Sesión no válida o expirada.' });
-        }
-
-        const userId = results[0].user_id;
-
-        const queryUpdatePerfil = `
-            UPDATE perfiles 
-            SET nombre = ?, apellido = ?, telefono = ?, genero = ?
-            WHERE user_id = ?`;
-        
-        db.query(queryUpdatePerfil, [nombre, apellido, telefono, genero, userId], (err) => {
-            if (err) return res.status(500).json({ error: 'Error al actualizar el perfil.' });
-
-            res.status(200).json({ mensaje: 'Perfil actualizado correctamente.' });
-        });
-    });
-});
-
-
-// Ruta GET para verificar si el perfil de usuario está creado
-router.get('/existe-perfil', verificarSesion, async (req, res) => {
     try {
-        const token = req.headers['authorization'];
+        const pool = await db.connect();
+        const query = `
+            INSERT INTO perfiles (user_id, nombre, apellido, telefono, genero)
+            VALUES (@userId, @nombre, @apellido, @telefono, @genero)
+        `;
+        await pool.request()
+            .input('userId', userId)
+            .input('nombre', nombre)
+            .input('apellido', apellido)
+            .input('telefono', telefono)
+            .input('genero', genero)
+            .query(query);
 
-        // Consulta para obtener el `user_id` usando el token de sesión
-        const queryGetUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-        const [userResult] = await db.promise().query(queryGetUserId, [token]);
+        res.status(201).json({ mensaje: 'Perfil creado correctamente.' });
+    } catch (err) {
+        console.error('Error al crear el perfil:', err);
+        res.status(500).json({ error: 'Error al crear el perfil.', detalle: err.message });
+    }
+});
 
-        if (userResult.length === 0) {
-            return res.status(401).json({ error: 'Sesión no válida o expirada.' });
+// Obtener perfil
+router.get('/perfil', verificarSesion, async (req, res) => {
+    const userId = req.user ? req.user.id : null;
+
+    if (!userId) {
+        return res.status(403).json({ error: 'Acceso no autorizado.' });
+    }
+
+    try {
+        const pool = await db.connect();
+        const query = `
+            SELECT nombre, apellido, telefono, genero
+            FROM perfiles
+            WHERE user_id = @userId
+        `;
+        const result = await pool.request().input('userId', userId).query(query);
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: 'Perfil no encontrado.' });
         }
 
-        const userId = userResult[0].user_id;
+        res.status(200).json(result.recordset[0]);
+    } catch (err) {
+        console.error('Error al obtener el perfil:', err);
+        res.status(500).json({ error: 'Error al obtener el perfil.', detalle: err.message });
+    }
+});
 
-        // Consulta para verificar si existe un perfil en la tabla `perfiles` para el `user_id`
-        const queryCheckProfile = 'SELECT * FROM perfiles WHERE user_id = ?';
-        const [profileResult] = await db.promise().query(queryCheckProfile, [userId]);
+// Actualizar perfil
+router.put('/perfilput', verificarSesion, async (req, res) => {
+    const { nombre, apellido, telefono, genero } = req.body;
+    const userId = req.user ? req.user.id : null;
 
-        if (profileResult.length > 0) {
-            return res.status(200).json({ exists: true, profile: profileResult[0] });
+    if (!userId) {
+        return res.status(403).json({ error: 'Acceso no autorizado.' });
+    }
+
+    if (!nombre || !apellido || !telefono || !genero) {
+        return res.status(400).json({ error: 'Todos los datos son obligatorios.' });
+    }
+
+    try {
+        const pool = await db.connect();
+        const query = `
+            UPDATE perfiles
+            SET nombre = @nombre, apellido = @apellido, telefono = @telefono, genero = @genero
+            WHERE user_id = @userId
+        `;
+        await pool.request()
+            .input('userId', userId)
+            .input('nombre', nombre)
+            .input('apellido', apellido)
+            .input('telefono', telefono)
+            .input('genero', genero)
+            .query(query);
+
+        res.status(200).json({ mensaje: 'Perfil actualizado correctamente.' });
+    } catch (err) {
+        console.error('Error al actualizar el perfil:', err);
+        res.status(500).json({ error: 'Error al actualizar el perfil.', detalle: err.message });
+    }
+});
+
+// Verificar si el perfil existe
+router.get('/existe-perfil', verificarSesion, async (req, res) => {
+    const userId = req.user ? req.user.id : null;
+
+    if (!userId) {
+        return res.status(403).json({ error: 'Acceso no autorizado.' });
+    }
+
+    try {
+        const pool = await db.connect();
+        const query = `
+            SELECT * FROM perfiles
+            WHERE user_id = @userId
+        `;
+        const result = await pool.request().input('userId', userId).query(query);
+
+        if (result.recordset.length > 0) {
+            return res.status(200).json({ exists: true, profile: result.recordset[0] });
         } else {
             return res.status(200).json({ exists: false });
         }
-    } catch (error) {
-        console.error('Error al verificar el perfil:', error);
-        res.status(500).json({ error: 'Error al verificar el perfil del usuario.' });
+    } catch (err) {
+        console.error('Error al verificar el perfil:', err);
+        res.status(500).json({ error: 'Error al verificar el perfil del usuario.', detalle: err.message });
     }
 });
-
-
-
-
 
 module.exports = router;

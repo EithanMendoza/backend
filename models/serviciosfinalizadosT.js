@@ -4,15 +4,16 @@ const db = require('../database'); // Conexión a la base de datos
 const verificarTecnico = require('../middleware/tecnicosmiddleware'); // Middleware de autenticación para el técnico
 
 // Endpoint para obtener servicios completados para el técnico autenticado
-// Endpoint para obtener servicios completados para el técnico autenticado
-// Endpoint para obtener servicios completados para el técnico autenticado
-router.get('/servicios-completados', verificarTecnico, (req, res) => {
-    const tecnicoId = req.tecnico ? req.tecnico.id : null;
-  
-    if (!tecnicoId) {
-      return res.status(403).json({ error: 'Acceso no autorizado.' });
-    }
-  
+router.get('/servicios-completados', verificarTecnico, async (req, res) => {
+  const tecnicoId = req.tecnico ? req.tecnico.id : null;
+
+  if (!tecnicoId) {
+    return res.status(403).json({ error: 'Acceso no autorizado.' });
+  }
+
+  try {
+    const pool = await db.connect();
+
     const queryServiciosCompletados = `
       SELECT 
         s.id AS solicitudId,
@@ -21,30 +22,30 @@ router.get('/servicios-completados', verificarTecnico, (req, res) => {
         u.id AS userId,
         CONCAT(pr.nombre, ' ', pr.apellido) AS nombreUsuario
       FROM 
-        solicitudes_servicio AS s
+        solicitudes_servicio s
       JOIN 
-        usuarios AS u ON s.user_id = u.id
+        usuarios u ON s.user_id = u.id
       JOIN 
-        perfiles AS pr ON pr.user_id = u.id
+        perfiles pr ON pr.user_id = u.id
       JOIN 
-        pagos AS p ON p.solicitud_id = s.id
+        pagos p ON p.solicitud_id = s.id
       WHERE 
-        s.tecnico_id = ? 
+        s.tecnico_id = @tecnicoId 
         AND s.estado = 'completado'
         AND p.estado = 'completado'
       ORDER BY 
         p.fecha DESC
     `;
-  
-    db.query(queryServiciosCompletados, [tecnicoId], (err, results) => {
-      if (err) {
-        console.error('Error al obtener los servicios completados:', err);
-        return res.status(500).json({ error: 'Error al obtener los servicios completados' });
-      }
-  
-      res.status(200).json(results);
-    });
-  });
-  
-  
+
+    const result = await pool.request()
+      .input('tecnicoId', db.BigInt, tecnicoId)
+      .query(queryServiciosCompletados);
+
+    res.status(200).json(result.recordset);
+  } catch (err) {
+    console.error('Error al obtener los servicios completados:', err);
+    res.status(500).json({ error: 'Error al obtener los servicios completados', detalle: err.message });
+  }
+});
+
 module.exports = router;

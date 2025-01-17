@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database'); // Importa la conexión a la base de datos
+const db = require('../database'); // Conexión a la base de datos
 
 // Obtener todos los usuarios con información de sesiones
-router.get('/usuarios', (req, res) => {
+router.get('/usuarios', async (req, res) => {
   const query = `
     SELECT 
       u.id, 
@@ -18,52 +18,51 @@ router.get('/usuarios', (req, res) => {
       login l ON u.id = l.user_id
   `;
 
-  db.query(query, (err, rows) => {
-    if (err) {
-      console.error('Error al obtener usuarios:', err);
-      return res.status(500).json({ error: 'Error al obtener los usuarios' });
-    }
-    res.json(rows);
-  });
+  try {
+    const pool = await db.connect();
+    const result = await pool.request().query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error al obtener usuarios:', err);
+    res.status(500).json({ error: 'Error al obtener los usuarios' });
+  }
 });
 
-router.delete('/usuarios/:id', (req, res) => {
+// Eliminar un usuario y sus datos relacionados
+router.delete('/usuarios/:id', async (req, res) => {
   const { id } = req.params;
 
-  // Eliminar registros dependientes en la tabla `perfiles`
-  db.query('DELETE FROM perfiles WHERE user_id = ?', [id], (err) => {
-    if (err) {
-      console.error('Error al eliminar perfiles del usuario:', err);
-      return res.status(500).json({ error: 'Error al eliminar perfiles del usuario' });
+  try {
+    const pool = await db.connect();
+
+    // Eliminar perfiles relacionados
+    await pool.request()
+      .input('id', db.BigInt, id)
+      .query('DELETE FROM perfiles WHERE user_id = @id');
+
+    // Eliminar sesiones del usuario
+    await pool.request()
+      .input('id', db.BigInt, id)
+      .query('DELETE FROM login WHERE user_id = @id');
+
+    // Eliminar el usuario
+    const result = await pool.request()
+      .input('id', db.BigInt, id)
+      .query('DELETE FROM usuarios WHERE id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Luego, elimina las sesiones del usuario en `login`
-    db.query('DELETE FROM login WHERE user_id = ?', [id], (err) => {
-      if (err) {
-        console.error('Error al eliminar sesiones de usuario:', err);
-        return res.status(500).json({ error: 'Error al eliminar sesiones de usuario' });
-      }
-
-      // Finalmente, elimina el usuario en `usuarios`
-      db.query('DELETE FROM usuarios WHERE id = ?', [id], (err, result) => {
-        if (err) {
-          console.error('Error al eliminar usuario:', err);
-          return res.status(500).json({ error: 'Error al eliminar el usuario' });
-        }
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-
-        res.json({ message: 'Usuario eliminado exitosamente' });
-      });
-    });
-  });
+    res.json({ message: 'Usuario eliminado exitosamente' });
+  } catch (err) {
+    console.error('Error al eliminar usuario:', err);
+    res.status(500).json({ error: 'Error al eliminar el usuario' });
+  }
 });
 
-
 // Obtener todos los perfiles de técnicos con información de sesiones
-router.get('/tecnicos', (req, res) => {
+router.get('/tecnicos', async (req, res) => {
   const query = `
     SELECT 
       pt.id AS perfil_id,
@@ -82,43 +81,46 @@ router.get('/tecnicos', (req, res) => {
       sesiones_tecnico st ON pt.tecnico_id = st.tecnico_id
   `;
 
-  db.query(query, (err, rows) => {
-    if (err) {
-      console.error('Error al obtener técnicos:', err);
-      return res.status(500).json({ error: 'Error al obtener los técnicos' });
-    }
-    res.json(rows);
-  });
+  try {
+    const pool = await db.connect();
+    const result = await pool.request().query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error al obtener técnicos:', err);
+    res.status(500).json({ error: 'Error al obtener los técnicos' });
+  }
 });
 
 // Eliminar un perfil de técnico por ID
-router.delete('/tecnicos/:id', (req, res) => {
+router.delete('/tecnicos/:id', async (req, res) => {
   const { id } = req.params;
 
-  // Eliminar registros relacionados y el perfil
-  db.query('DELETE FROM sesiones_tecnico WHERE tecnico_id = ?', [id], (err) => {
-    if (err) {
-      console.error('Error al eliminar sesiones del técnico:', err);
-      return res.status(500).json({ error: 'Error al eliminar sesiones del técnico' });
+  try {
+    const pool = await db.connect();
+
+    // Eliminar sesiones relacionadas
+    await pool.request()
+      .input('id', db.BigInt, id)
+      .query('DELETE FROM sesiones_tecnico WHERE tecnico_id = @id');
+
+    // Eliminar el perfil
+    const result = await pool.request()
+      .input('id', db.BigInt, id)
+      .query('DELETE FROM perfil_tecnico WHERE id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Técnico no encontrado' });
     }
 
-    db.query('DELETE FROM perfil_tecnico WHERE id = ?', [id], (err, result) => {
-      if (err) {
-        console.error('Error al eliminar técnico:', err);
-        return res.status(500).json({ error: 'Error al eliminar el técnico' });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Técnico no encontrado' });
-      }
-
-      res.json({ message: 'Técnico eliminado exitosamente' });
-    });
-  });
+    res.json({ message: 'Técnico eliminado exitosamente' });
+  } catch (err) {
+    console.error('Error al eliminar técnico:', err);
+    res.status(500).json({ error: 'Error al eliminar el técnico' });
+  }
 });
 
 // Obtener todas las solicitudes pendientes y asignadas
-router.get('/solicitudes', (req, res) => {
+router.get('/solicitudes', async (req, res) => {
   const query = `
     SELECT 
       ss.id AS solicitud_id,
@@ -146,54 +148,50 @@ router.get('/solicitudes', (req, res) => {
       ss.fecha ASC, ss.hora ASC
   `;
 
-  db.query(query, (err, rows) => {
-    if (err) {
-      console.error('Error al obtener solicitudes:', err);
-      return res.status(500).json({ error: 'Error al obtener las solicitudes' });
-    }
-    res.json(rows);
-  });
+  try {
+    const pool = await db.connect();
+    const result = await pool.request().query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error al obtener solicitudes:', err);
+    res.status(500).json({ error: 'Error al obtener las solicitudes' });
+  }
 });
 
 // Eliminar una solicitud si está en estado "pendiente"
-router.delete('/solicitudes/:id', (req, res) => {
+router.delete('/solicitudes/:id', async (req, res) => {
   const { id } = req.params;
 
-  // Verificar si la solicitud existe y está en estado "pendiente"
-  const verificarEstadoQuery = 'SELECT estado FROM solicitudes_servicio WHERE id = ?';
+  try {
+    const pool = await db.connect();
 
-  db.query(verificarEstadoQuery, [id], (err, result) => {
-    if (err) {
-      console.error('Error al verificar estado de la solicitud:', err);
-      return res.status(500).json({ error: 'Error al verificar el estado de la solicitud' });
-    }
+    // Verificar si la solicitud está pendiente
+    const verificarEstadoResult = await pool.request()
+      .input('id', db.BigInt, id)
+      .query('SELECT estado FROM solicitudes_servicio WHERE id = @id');
 
-    if (result.length === 0) {
+    if (verificarEstadoResult.recordset.length === 0) {
       return res.status(404).json({ error: 'Solicitud no encontrada' });
     }
 
-    if (result[0].estado !== 'pendiente') {
+    if (verificarEstadoResult.recordset[0].estado !== 'pendiente') {
       return res.status(400).json({ error: 'Solo se pueden eliminar solicitudes en estado pendiente' });
     }
 
     // Eliminar la solicitud
-    const eliminarQuery = 'DELETE FROM solicitudes_servicio WHERE id = ?';
+    await pool.request()
+      .input('id', db.BigInt, id)
+      .query('DELETE FROM solicitudes_servicio WHERE id = @id');
 
-    db.query(eliminarQuery, [id], (err) => {
-      if (err) {
-        console.error('Error al eliminar solicitud:', err);
-        return res.status(500).json({ error: 'Error al eliminar la solicitud' });
-      }
-
-      res.json({ message: 'Solicitud eliminada exitosamente' });
-    });
-  });
+    res.json({ message: 'Solicitud eliminada exitosamente' });
+  } catch (err) {
+    console.error('Error al eliminar solicitud:', err);
+    res.status(500).json({ error: 'Error al eliminar la solicitud' });
+  }
 });
 
-
-
 // Obtener el estado de los pagos con información del cliente y técnico
-router.get('/pagos', (req, res) => {
+router.get('/pagos', async (req, res) => {
   const query = `
     SELECT 
       p.id AS pago_id,
@@ -214,19 +212,14 @@ router.get('/pagos', (req, res) => {
       tecnicos_servicio t ON ss.tecnico_id = t.id
   `;
 
-  db.query(query, (err, rows) => {
-    if (err) {
-      console.error('Error al obtener pagos:', err);
-      return res.status(500).json({ error: 'Error al obtener los pagos' });
-    }
-    res.json(rows);
-  });
+  try {
+    const pool = await db.connect();
+    const result = await pool.request().query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error al obtener pagos:', err);
+    res.status(500).json({ error: 'Error al obtener los pagos' });
+  }
 });
 
-
-
-
-
-  
-  module.exports = router;
-
+module.exports = router;

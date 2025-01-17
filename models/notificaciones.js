@@ -4,105 +4,138 @@ const db = require('../database'); // Conexión a la base de datos
 const verificarSesion = require('../middleware/authMiddleware'); // Middleware de sesión
 
 // Obtener notificaciones para el usuario autenticado
-router.get('/notificaciones', verificarSesion, (req, res) => {
+router.get('/notificaciones', verificarSesion, async (req, res) => {
   const token = req.headers['authorization'];
 
-  // Obtener el user_id desde el token de sesión
-  const queryUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-  db.query(queryUserId, [token], (err, result) => {
-    if (err || result.length === 0) {
+  try {
+    const pool = await db.connect();
+
+    // Obtener el user_id desde el token de sesión
+    const queryUserId = `
+      SELECT user_id 
+      FROM login 
+      WHERE session_token = @token AND tiempo_cierre IS NULL
+    `;
+    const userIdResult = await pool.request()
+      .input('token', db.VarChar, token)
+      .query(queryUserId);
+
+    if (userIdResult.recordset.length === 0) {
       return res.status(401).json({ error: 'Sesión no válida o expirada.' });
     }
 
-    const userId = result[0].user_id;
+    const userId = userIdResult.recordset[0].user_id;
 
     // Obtener notificaciones no leídas del usuario
     const queryNotificaciones = `
       SELECT id, mensaje, fecha, leida 
       FROM notificaciones 
-      WHERE user_id = ? 
+      WHERE user_id = @userId 
       ORDER BY fecha DESC
     `;
-    db.query(queryNotificaciones, [userId], (err, results) => {
-      if (err) {
-        console.error('Error al obtener las notificaciones:', err);
-        return res.status(500).json({ error: 'Error al obtener las notificaciones', detalle: err.message });
-      }
+    const notificacionesResult = await pool.request()
+      .input('userId', db.BigInt, userId)
+      .query(queryNotificaciones);
 
-      res.status(200).json(results);
-    });
-  });
+    res.status(200).json(notificacionesResult.recordset);
+  } catch (err) {
+    console.error('Error al obtener las notificaciones:', err);
+    res.status(500).json({ error: 'Error al obtener las notificaciones', detalle: err.message });
+  }
 });
 
 // Marcar notificaciones como leídas
-router.put('/notificaciones/marcar-leidas', verificarSesion, (req, res) => {
+router.put('/notificaciones/marcar-leidas', verificarSesion, async (req, res) => {
   const { ids } = req.body; // Lista de IDs de notificación a marcar como leídas
   const token = req.headers['authorization'];
 
-  // Validar que se reciban IDs
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'Debe proporcionar una lista de IDs de notificación.' });
   }
 
-  // Obtener el user_id desde el token de sesión
-  const queryUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-  db.query(queryUserId, [token], (err, result) => {
-    if (err || result.length === 0) {
+  try {
+    const pool = await db.connect();
+
+    // Obtener el user_id desde el token de sesión
+    const queryUserId = `
+      SELECT user_id 
+      FROM login 
+      WHERE session_token = @token AND tiempo_cierre IS NULL
+    `;
+    const userIdResult = await pool.request()
+      .input('token', db.VarChar, token)
+      .query(queryUserId);
+
+    if (userIdResult.recordset.length === 0) {
       return res.status(401).json({ error: 'Sesión no válida o expirada.' });
     }
 
-    const userId = result[0].user_id;
+    const userId = userIdResult.recordset[0].user_id;
 
     // Actualizar las notificaciones a leídas
     const queryMarcarLeidas = `
       UPDATE notificaciones 
-      SET leida = true 
-      WHERE id IN (?) AND user_id = ?
+      SET leida = 1 
+      WHERE id IN (${ids.map(() => '@id').join(',')}) AND user_id = @userId
     `;
-    db.query(queryMarcarLeidas, [ids, userId], (err, result) => {
-      if (err) {
-        console.error('Error al marcar las notificaciones como leídas:', err);
-        return res.status(500).json({ error: 'Error al marcar las notificaciones como leídas', detalle: err.message });
-      }
 
-      res.status(200).json({ mensaje: 'Notificaciones marcadas como leídas correctamente' });
+    const request = pool.request().input('userId', db.BigInt, userId);
+    ids.forEach((id, index) => {
+      request.input(`id${index}`, db.BigInt, id);
     });
-  });
+
+    await request.query(queryMarcarLeidas);
+
+    res.status(200).json({ mensaje: 'Notificaciones marcadas como leídas correctamente' });
+  } catch (err) {
+    console.error('Error al marcar las notificaciones como leídas:', err);
+    res.status(500).json({ error: 'Error al marcar las notificaciones como leídas', detalle: err.message });
+  }
 });
 
-router.delete('/notificaciones/eliminar/:id', verificarSesion, (req, res) => {
-  const { id } = req.params; // ID de la notificación a eliminar
+// Eliminar notificación específica
+router.delete('/notificaciones/eliminar/:id', verificarSesion, async (req, res) => {
+  const { id } = req.params;
   const token = req.headers['authorization'];
 
-  // Paso 1: Autenticación y obtención de `user_id`
-  const queryUserId = 'SELECT user_id FROM login WHERE session_token = ? AND tiempo_cierre IS NULL';
-  db.query(queryUserId, [token], (err, result) => {
-    if (err || result.length === 0) {
+  try {
+    const pool = await db.connect();
+
+    // Obtener el user_id desde el token de sesión
+    const queryUserId = `
+      SELECT user_id 
+      FROM login 
+      WHERE session_token = @token AND tiempo_cierre IS NULL
+    `;
+    const userIdResult = await pool.request()
+      .input('token', db.VarChar, token)
+      .query(queryUserId);
+
+    if (userIdResult.recordset.length === 0) {
       return res.status(401).json({ error: 'Sesión no válida o expirada.' });
     }
 
-    const userId = result[0].user_id;
+    const userId = userIdResult.recordset[0].user_id;
 
-    // Paso 2: Eliminar la notificación específica del usuario
+    // Eliminar la notificación específica del usuario
     const queryEliminarNotificacion = `
       DELETE FROM notificaciones 
-      WHERE id = ? AND user_id = ?
+      WHERE id = @id AND user_id = @userId
     `;
-    db.query(queryEliminarNotificacion, [id, userId], (err, result) => {
-      if (err) {
-        console.error('Error al eliminar la notificación:', err);
-        return res.status(500).json({ error: 'Error al eliminar la notificación', detalle: err.message });
-      }
+    const result = await pool.request()
+      .input('id', db.BigInt, id)
+      .input('userId', db.BigInt, userId)
+      .query(queryEliminarNotificacion);
 
-      // Verificación final: ¿La notificación fue eliminada?
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Notificación no encontrada o ya eliminada.' });
-      }
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Notificación no encontrada o ya eliminada.' });
+    }
 
-      res.status(200).json({ mensaje: 'Notificación eliminada correctamente.' });
-    });
-  });
+    res.status(200).json({ mensaje: 'Notificación eliminada correctamente.' });
+  } catch (err) {
+    console.error('Error al eliminar la notificación:', err);
+    res.status(500).json({ error: 'Error al eliminar la notificación', detalle: err.message });
+  }
 });
-
 
 module.exports = router;
