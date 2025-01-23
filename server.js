@@ -1,64 +1,57 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+require('dotenv').config(); // Cargar variables de entorno
+const { dbConnect } = require('./database'); // Conexión a MongoDB
 
 // Crear instancia de la aplicación Express
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-// Importar la conexión a la base de datos
-require('./database'); // Verifica que el archivo database.js esté correctamente configurado
-
-// Habilitar CORS para todas las solicitudes
+// Habilitar CORS
 app.use(cors());
 
-// Middleware para parsear JSON y datos codificados
+// Middleware para parsear JSON
 app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
-// Importar rutas y modelos
-const autenticacionTecnicos = require('./models/autenticacionTecnicos');
-const autenticacionUsuario = require('./models/autenticacionUsuario');
-const formulario = require('./routes/formulario');
-const home = require('./routes/home');
-const aceptacionSolicitudT = require('./routes/AceptacionSolicitudT');
-const notificaciones = require('./models/notificaciones');
-const perfil = require('./routes/perfil');
-const perfilTRouter = require('./routes/perfilT'); 
-const actualizacion = require('./routes/actualizacion');
-const pago = require('./models/pago');
-const reportar = require('./models/reportar');
-const finalizacion = require('./models/finalizacion');
-const serviciosfinalizadosT = require('./models/serviciosfinalizadosT');
-const progreso = require('./routes/progreso');
-const completado = require('./routes/completado');
-const administrador = require('./models/administrador');
+// Conexión a MongoDB
+(async () => {
+  try {
+    const db = await dbConnect();
+    app.locals.db = db; // Hacer que la conexión esté disponible globalmente
+    console.log('Conexión establecida con MongoDB');
+  } catch (err) {
+    console.error('Error al conectar con MongoDB:', err);
+    process.exit(1); // Detener el servidor si no se puede conectar a MongoDB
+  }
+})();
+
+// Importar rutas
+const autenticacionTecnicosRoutes = require('./routes/autenticacionTecnicos');
+const aceptacionSolicitudRouter = require('./routes/AceptacionSolicitudT');
+const actualizacionRouter = require('./routes/actualizacion');
+const completadoRouter = require('./routes/completado');
+const formularioRouter = require('./routes/formulario');
+const homeRouter = require('./routes/home');
+const autenticacionUsuariosRoutes = require('./routes/autenticacionUsuario');
+const progresoRouter = require('./routes/progreso');
 
 // Configurar rutas
-app.use('/autenticacionTecnicos', autenticacionTecnicos);
-app.use('/autenticacionUsuario', autenticacionUsuario);
-app.use('/formulario', formulario);
-app.use('/home', home);
-app.use('/aceptacionSolicitudT', aceptacionSolicitudT);
-app.use('/notificaciones', notificaciones);
-app.use('/perfil', perfil);
-app.use('/perfilT', perfilTRouter);
-app.use('/actualizacion', actualizacion);
-app.use('/pago', pago);
-app.use('/reportar', reportar);
-app.use('/finalizacion', finalizacion);
-app.use('/serviciosfinalizadosT', serviciosfinalizadosT);
-app.use('/progreso', progreso);
-app.use('/completado', completado);
-app.use('/administrador', administrador);
+app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes);
+app.use('/aceptacionSolicitud', aceptacionSolicitudRouter);
+app.use('/actualizacion', actualizacionRouter);
+app.use('/completado', completadoRouter);
+app.use('/formulario', formularioRouter);
+app.use('/home', homeRouter);
+app.use('/progreso', progresoRouter);
+app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
 
-// Middleware global para manejar errores
+// Middleware para manejo de errores
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('Algo salió mal.');
+  res.status(500).json({ error: 'Error interno del servidor', detalle: err.message });
 });
 
-// Iniciar el servidor
+// Iniciar servidor
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });

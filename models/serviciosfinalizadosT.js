@@ -1,51 +1,72 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../database'); // Conexión a la base de datos
-const verificarTecnico = require('../middleware/tecnicosmiddleware'); // Middleware de autenticación para el técnico
+const { MongoClient, ObjectId } = require('mongodb');
 
-// Endpoint para obtener servicios completados para el técnico autenticado
-router.get('/servicios-completados', verificarTecnico, async (req, res) => {
-  const tecnicoId = req.tecnico ? req.tecnico.id : null;
+const connectToDatabase = async () => {
+  const client = new MongoClient(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+  await client.connect();
+  return client;
+};
 
-  if (!tecnicoId) {
-    return res.status(403).json({ error: 'Acceso no autorizado.' });
-  }
+// Obtener servicios completados para un técnico
+exports.getServiciosCompletadosPorTecnico = async (tecnicoId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
 
-  try {
-    const pool = await db.connect();
+  const servicios = await db.collection('solicitudes_servicio').aggregate([
+    {
+      $match: {
+        tecnico_id: new ObjectId(tecnicoId),
+        estado: 'completado',
+      },
+    },
+    {
+      $lookup: {
+        from: 'usuarios',
+        localField: 'user_id',
+        foreignField: '_id',
+        as: 'usuario',
+      },
+    },
+    { $unwind: '$usuario' },
+    {
+      $lookup: {
+        from: 'perfiles',
+        localField: 'usuario._id',
+        foreignField: 'user_id',
+        as: 'perfilUsuario',
+      },
+    },
+    { $unwind: '$perfilUsuario' },
+    {
+      $lookup: {
+        from: 'pagos',
+        localField: '_id',
+        foreignField: 'solicitud_id',
+        as: 'pago',
+      },
+    },
+    { $unwind: '$pago' },
+    {
+      $match: {
+        'pago.estado': 'completado',
+      },
+    },
+    {
+      $project: {
+        solicitudId: '$_id',
+        fechaPago: '$pago.fecha',
+        monto: '$pago.monto',
+        userId: '$usuario._id',
+        nombreUsuario: {
+          $concat: ['$perfilUsuario.nombre', ' ', '$perfilUsuario.apellido'],
+        },
+      },
+    },
+    { $sort: { fechaPago: -1 } },
+  ]).toArray();
 
-    const queryServiciosCompletados = `
-      SELECT 
-        s.id AS solicitudId,
-        p.fecha AS fechaPago,
-        p.monto,
-        u.id AS userId,
-        CONCAT(pr.nombre, ' ', pr.apellido) AS nombreUsuario
-      FROM 
-        solicitudes_servicio s
-      JOIN 
-        usuarios u ON s.user_id = u.id
-      JOIN 
-        perfiles pr ON pr.user_id = u.id
-      JOIN 
-        pagos p ON p.solicitud_id = s.id
-      WHERE 
-        s.tecnico_id = @tecnicoId 
-        AND s.estado = 'completado'
-        AND p.estado = 'completado'
-      ORDER BY 
-        p.fecha DESC
-    `;
-
-    const result = await pool.request()
-      .input('tecnicoId', db.BigInt, tecnicoId)
-      .query(queryServiciosCompletados);
-
-    res.status(200).json(result.recordset);
-  } catch (err) {
-    console.error('Error al obtener los servicios completados:', err);
-    res.status(500).json({ error: 'Error al obtener los servicios completados', detalle: err.message });
-  }
-});
-
-module.exports = router;
+  await client.close();
+  return servicios;
+};

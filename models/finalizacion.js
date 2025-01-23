@@ -1,56 +1,39 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../database'); // Conexión a la base de datos
-const verificarSesion = require('../middleware/authMiddleware'); // Middleware de sesión
+const { MongoClient, ObjectId } = require('mongodb');
 
-// Obtener servicios completados para el usuario autenticado
-router.get('/finalizados', verificarSesion, async (req, res) => {
-  const token = req.headers['authorization']; // Obtener el token de sesión del encabezado
+const connectToDatabase = async () => {
+  const client = new MongoClient(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+  await client.connect();
+  return client;
+};
 
-  try {
-    const pool = await db.connect();
+// Obtener el usuario asociado a un token activo
+exports.getUserIdFromSession = async (token) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
 
-    // Obtener el user_id desde el token de sesión
-    const queryUserId = `
-      SELECT user_id 
-      FROM login 
-      WHERE session_token = @token AND tiempo_cierre IS NULL
-    `;
-    const userIdResult = await pool.request()
-      .input('token', db.VarChar, token)
-      .query(queryUserId);
+  const session = await db.collection('login').findOne({
+    session_token: token,
+    tiempo_cierre: { $exists: false },
+  });
 
-    if (userIdResult.recordset.length === 0) {
-      return res.status(401).json({ error: 'Sesión no válida o expirada.' });
-    }
+  await client.close();
+  return session ? session.user_id : null;
+};
 
-    const userId = userIdResult.recordset[0].user_id;
+// Obtener servicios completados para un usuario
+exports.getCompletedServicesByUser = async (userId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
 
-    // Consulta para obtener servicios completados
-    const queryServiciosCompletados = `
-      SELECT 
-        id, 
-        nombre_servicio, 
-        fecha, 
-        hora, 
-        direccion, 
-        detalles
-      FROM 
-        solicitudes_servicio
-      WHERE 
-        user_id = @userId AND estado = 'completado'
-      ORDER BY 
-        fecha DESC
-    `;
-    const serviciosResult = await pool.request()
-      .input('userId', db.BigInt, userId)
-      .query(queryServiciosCompletados);
+  const services = await db.collection('solicitudes_servicio')
+    .find({ user_id: new ObjectId(userId), estado: 'completado' })
+    .sort({ fecha: -1 })
+    .project({ id: 1, nombre_servicio: 1, fecha: 1, hora: 1, direccion: 1, detalles: 1 })
+    .toArray();
 
-    res.status(200).json(serviciosResult.recordset);
-  } catch (err) {
-    console.error('Error al obtener los servicios completados:', err);
-    res.status(500).json({ error: 'Error al obtener los servicios completados', detalle: err.message });
-  }
-});
-
-module.exports = router;
+  await client.close();
+  return services;
+};

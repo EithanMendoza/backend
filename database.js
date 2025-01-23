@@ -1,28 +1,24 @@
-const sql = require('mssql'); // Importar el paquete mssql
+const { MongoClient } = require('mongodb'); // Importar el cliente de MongoDB
 require('dotenv').config(); // Cargar variables de entorno desde el archivo .env
 
-// Configurar los parámetros de conexión
-const config = {
-    user: 'juan',          // Usuario de la base de datos
-    password: 'pepe',          // Contraseña del usuario
-    server: '34.71.106.69',     // Dirección IP o DNS del host
-    database: 'AirTecs',        // Nombre de la base de datos
-    options: {
-        encrypt: true,          // Activar si usas Azure o HTTPS
-        trustServerCertificate: true, // Desactivar validación estricta del certificado
-    },
-    port: 1433                  // Puerto de SQL Server (por defecto: 1433)
-};
+// Obtener la URI de conexión desde las variables de entorno
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017'; // URI de MongoDB
+const DB_NAME = process.env.DB_NAME || 'AirTecs3'; // Nombre de la base de datos
 
 // Conectar a la base de datos
 const dbConnect = async () => {
-    try {
-        const pool = await sql.connect(config);
-        console.log('Conexión exitosa a SQL Server');
-        return pool;
-    } catch (err) {
-        console.error('Error conectando a la base de datos:', err);
-    }
+  try {
+    const client = new MongoClient(MONGO_URI); // Crear instancia del cliente de MongoDB sin opciones obsoletas
+
+    await client.connect(); // Conectar al servidor
+    console.log('Conexión exitosa a MongoDB');
+
+    // Devolver la conexión a la base de datos
+    return client.db(DB_NAME);
+  } catch (err) {
+    console.error('Error conectando a la base de datos MongoDB:', err);
+    throw err; // Relanzar el error para manejarlo en otro nivel si es necesario
+  }
 };
 
-module.exports = { dbConnect, sql };
+module.exports = { dbConnect };

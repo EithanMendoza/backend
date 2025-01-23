@@ -1,60 +1,64 @@
-const db = require('../database'); // Conexión a la base de datos
+const jwt = require('jsonwebtoken'); // Librería para manejar JWT
+const { MongoClient } = require('mongodb'); // Conexión a la base de datos
 
 const verificarPerfil = async (req, res, next) => {
-    const token = req.headers['authorization']; // Token enviado en el encabezado
+  const token = req.headers['authorization']; // Token enviado en el encabezado
 
-    if (!token) {
-        return res.status(401).json({ error: 'Sesión no válida o token no proporcionado.' });
+  if (!token) {
+    return res.status(401).json({ error: 'Sesión no válida o token no proporcionado.' });
+  }
+
+  try {
+    // Verificar y decodificar el token JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Clave secreta configurada en las variables de entorno
+
+    if (!decoded || !decoded.userId) {
+      console.warn('Token inválido o corrupto');
+      return res.status(401).json({ error: 'Sesión no válida o expirada.' });
     }
 
-    try {
-        // Conexión al pool de la base de datos
-        const pool = await db.connect();
+    const userId = decoded.userId;
 
-        // Obtener el user_id del token de sesión
-        const queryUserId = `
-            SELECT user_id 
-            FROM login 
-            WHERE session_token = @token AND tiempo_cierre IS NULL
-        `;
-        const userIdResult = await pool
-            .request()
-            .input('token', db.VarChar, token)
-            .query(queryUserId);
+    // Conexión a la base de datos MongoDB
+    const client = new MongoClient(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    await client.connect();
 
-        if (userIdResult.recordset.length === 0) {
-            return res.status(401).json({ error: 'Sesión no válida o expirada.' });
-        }
+    const db = client.db('AirTecs3'); // Cambiar al nombre de tu base de datos
+    const perfilesCollection = db.collection('perfiles'); // Acceder a la colección `perfiles`
 
-        const userId = userIdResult.recordset[0].user_id;
+    // Verificar que el perfil del usuario esté completo
+    console.log(`Verificando perfil para user_id: ${userId}`); // Debugging
+    const perfil = await perfilesCollection.findOne({ user_id: userId });
 
-        // Verificar que el perfil del usuario esté completo
-        console.log(`Verificando perfil para user_id: ${userId}`); // Debugging
-        const queryPerfil = `
-            SELECT nombre, apellido, telefono, genero 
-            FROM perfiles 
-            WHERE user_id = @userId
-        `;
-        const perfilResult = await pool
-            .request()
-            .input('userId', db.BigInt, userId)
-            .query(queryPerfil);
-
-        if (perfilResult.recordset.length === 0) {
-            return res.status(404).json({ error: 'Perfil no encontrado.' });
-        }
-
-        const perfil = perfilResult.recordset[0];
-        if (!perfil.nombre || !perfil.apellido || !perfil.telefono || !perfil.genero) {
-            return res.status(400).json({ error: 'El perfil debe estar completo para acceder a esta funcionalidad.' });
-        }
-
-        // Continuar con la solicitud
-        next();
-    } catch (err) {
-        console.error('Error al verificar el perfil:', err);
-        return res.status(500).json({ error: 'Error interno al verificar el perfil.', detalle: err.message });
+    if (!perfil) {
+      await client.close();
+      return res.status(404).json({ error: 'Perfil no encontrado.' });
     }
+
+    const { nombre, apellido, telefono, genero } = perfil;
+    if (!nombre || !apellido || !telefono || !genero) {
+      await client.close();
+      return res
+        .status(400)
+        .json({ error: 'El perfil debe estar completo para acceder a esta funcionalidad.' });
+    }
+
+    // Continuar con la solicitud
+    console.log('Perfil verificado correctamente:', perfil);
+    await client.close();
+    next();
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      console.error('Error de autenticación con JWT:', err.message);
+      return res.status(401).json({ error: 'Token inválido o expirado.', detalle: err.message });
+    }
+
+    console.error('Error al verificar el perfil:', err);
+    return res.status(500).json({ error: 'Error interno al verificar el perfil.', detalle: err.message });
+  }
 };
 
 module.exports = verificarPerfil;
