@@ -95,10 +95,37 @@ exports.logoutUsuario = async (req, res) => {
 exports.listUsuarios = async (req, res) => {
   try {
     const db = req.app.locals.db; // Obtener la conexión de la base de datos
-    const usuarios = await db.collection('usuarios').find().toArray(); // Cambia 'usuarios' por el nombre de tu colección
-    res.status(200).json(usuarios);
+
+    // Leer parámetros de la solicitud
+    const page = parseInt(req.query.page) || 1; // Página actual (por defecto 1)
+    const limit = parseInt(req.query.limit) || 100; // Límite de documentos por página (por defecto 100)
+    const skip = (page - 1) * limit; // Calcular cuántos documentos omitir
+
+    // Obtener usuarios con paginación
+    const usuarios = await db
+      .collection('usuarios') // Cambia 'usuarios' por el nombre de tu colección si es diferente
+      .find()
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    // Obtener el total de documentos
+    const totalUsuarios = await db.collection('usuarios').countDocuments();
+
+    // Calcular total de páginas
+    const totalPages = Math.ceil(totalUsuarios / limit);
+
+    // Responder con los usuarios y metadatos de paginación
+    res.status(200).json({
+      page,
+      limit,
+      totalUsuarios,
+      totalPages,
+      usuarios,
+    });
   } catch (err) {
     console.error('Error al listar usuarios:', err);
     res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
   }
 };
+
