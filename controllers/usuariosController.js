@@ -94,11 +94,20 @@ exports.logoutUsuario = async (req, res) => {
 // Listar usuarios
 exports.listUsuarios = async (req, res) => {
   try {
-    const db = req.app.locals.db; // Obtener la conexión de la base de datos
-    const usuarios = await db.collection('usuarios').find().toArray(); // Cambia 'usuarios' por el nombre de tu colección
-    res.status(200).json(usuarios);
-  } catch (err) {
-    console.error('Error al listar usuarios:', err);
-    res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
+    const { page = 1, limit = 100, random = false } = req.query;
+
+    if (random === 'true') {
+      // Selección aleatoria
+      const randomUsers = await Usuario.aggregate([{ $sample: { size: parseInt(limit) } }]);
+      return res.status(200).json(randomUsers);
+    }
+
+    // Paginación regular
+    const users = await Usuario.find()
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener usuarios', detalle: error.message });
   }
 };
