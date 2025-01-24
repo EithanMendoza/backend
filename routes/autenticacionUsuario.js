@@ -11,4 +11,7 @@ router.post('/login', usuariosController.loginUsuario);
 // Cerrar sesión
 router.post('/logout', usuariosController.logoutUsuario);
 
+// Listar usuarios (Nueva ruta)
+router.get('/list', usuariosController.listUsuarios);
+
 module.exports = router;

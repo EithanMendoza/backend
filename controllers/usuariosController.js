@@ -89,3 +89,16 @@ exports.logoutUsuario = async (req, res) => {
     res.status(500).json({ error: 'Error al cerrar sesión', detalle: error.message });
   }
 };
+
+
+// Listar usuarios
+exports.listUsuarios = async (req, res) => {
+  try {
+    const db = req.app.locals.db; // Obtener la conexión de la base de datos
+    const usuarios = await db.collection('usuarios').find().toArray(); // Cambia 'usuarios' por el nombre de tu colección
+    res.status(200).json(usuarios);
+  } catch (err) {
+    console.error('Error al listar usuarios:', err);
+    res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
+  }
+};
