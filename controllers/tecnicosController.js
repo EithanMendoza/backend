@@ -115,3 +115,36 @@ exports.cerrarSesionTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error al cerrar sesión.', detalle: error.message });
   }
 };
+
+exports.listTecnicos = async (req, res) => {
+  try {
+    const db = req.app.locals.db; // Obtener la conexión de la base de datos
+    const page = parseInt(req.query.page) || 0; // Página actual (0 por defecto)
+    const limit = parseInt(req.query.limit) || 100; // Número de documentos por página (100 por defecto)
+
+    // Calcular el número de documentos a saltar
+    const skip = page * limit;
+
+    // Obtener técnicos con paginación
+    const tecnicos = await db.collection('tecnicos_servicio')
+      .find()
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    // Obtener el número total de técnicos
+    const totalTecnicos = await db.collection('tecnicos_servicio').countDocuments();
+
+    res.status(200).json({
+      page,
+      limit,
+      totalTecnicos,
+      totalPages: Math.ceil(totalTecnicos / limit),
+      tecnicos,
+    });
+  } catch (err) {
+    console.error('Error al listar técnicos:', err);
+    res.status(500).json({ error: 'Error al obtener la lista de técnicos' });
+  }
+};
+

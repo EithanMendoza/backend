@@ -11,4 +11,7 @@ router.post('/login', tecnicosController.iniciarSesionTecnico);
 // Cerrar sesión de técnico
 router.post('/logout', tecnicosController.cerrarSesionTecnico);
 
+// Ruta para listar técnicos con paginación
+router.get('/list', tecnicosController.listTecnicos);
+
 module.exports = router;

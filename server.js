@@ -34,18 +34,18 @@ const formularioRouter = require('./routes/formulario');
 const homeRouter = require('./routes/home');
 const autenticacionUsuariosRoutes = require('./routes/autenticacionUsuario');
 const progresoRouter = require('./routes/progreso');
-const usuariosRoutes = require('./routes/autenticacionUsuario'); // Utiliza el archivo donde están las rutas de usuarios
+const tecnicosRoutes = require('./routes/tecnicos'); // Ruta específica para técnicos
 
 // Configurar rutas
-app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes);
+app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes); // Rutas de autenticación de técnicos
+app.use('/tecnicos', tecnicosRoutes); // Ruta para manejar los técnicos
 app.use('/aceptacionSolicitud', aceptacionSolicitudRouter);
 app.use('/actualizacion', actualizacionRouter);
 app.use('/completado', completadoRouter);
 app.use('/formulario', formularioRouter);
 app.use('/home', homeRouter);
 app.use('/progreso', progresoRouter);
-app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
-app.use('/usuarios', usuariosRoutes); // Ruta para manejar los usuarios
+app.use('/autenticacionUsuario', autenticacionUsuariosRoutes); // Rutas de autenticación de usuarios
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {
