@@ -5,6 +5,8 @@ const { MongoClient } = require('mongodb'); // Conexión a la base de datos
 const verificarSesion = async (req, res, next) => {
   const token = req.headers['authorization']; // El token de sesión debe enviarse en el header de autorización
 
+  console.log('Token recibido:', token); // Log para verificar qué token se está recibiendo
+
   if (!token) {
     console.error('Token de sesión no proporcionado');
     return res.status(401).json({ error: 'No se ha proporcionado un token de sesión.' });
@@ -12,7 +14,9 @@ const verificarSesion = async (req, res, next) => {
 
   try {
     // Verificar y decodificar el token JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Clave secreta en las variables de entorno
+    const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET); // Extraer token y verificar
+
+    console.log('Token decodificado:', decoded); // Log para verificar el contenido decodificado
 
     if (!decoded || !decoded.userId) {
       console.warn('Token inválido o corrupto');
@@ -31,7 +35,7 @@ const verificarSesion = async (req, res, next) => {
 
     // Buscar el token de sesión en la colección `login`
     const session = await loginCollection.findOne({
-      session_token: token,
+      session_token: token.split(' ')[1], // Usar solo el token, sin el prefijo "Bearer"
       tiempo_cierre: { $exists: false }, // Verificar que el tiempo de cierre no exista (sesión activa)
     });
 
