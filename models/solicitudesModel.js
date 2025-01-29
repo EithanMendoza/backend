@@ -11,7 +11,7 @@ exports.getSolicitudesPendientes = async () => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
-  const solicitudes = await db.collection('solicitudes').find({ estado: "pendiente" }).toArray();
+  const solicitudes = await db.collection('solicitudes_servicio').find({ estado: "pendiente" }).toArray();
 
   await client.close();
   return solicitudes;
@@ -22,7 +22,7 @@ exports.aceptarSolicitud = async (solicitudId, tecnicoId, codigoInicial) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
-  const result = await db.collection('solicitudes').updateOne(
+  const result = await db.collection('solicitudes_servicio').updateOne(
     { _id: solicitudId, estado: "pendiente" },
     { $set: { estado: "aceptada", tecnico_id: tecnicoId, codigo: codigoInicial } }
   );
@@ -36,7 +36,7 @@ exports.cancelarSolicitud = async (solicitudId, tecnicoId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
-  const result = await db.collection('solicitudes').updateOne(
+  const result = await db.collection('solicitudes_servicio').updateOne(
     { _id: solicitudId, tecnico_id: tecnicoId, estado: "aceptada" },
     { $set: { estado: "cancelada" } }
   );
@@ -50,7 +50,7 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
-  const solicitudes = await db.collection('solicitudes').find({ tecnico_id: tecnicoId, estado: "aceptada" }).toArray();
+  const solicitudes = await db.collection('solicitudes_servicio').find({ tecnico_id: tecnicoId, estado: "aceptada" }).toArray();
 
   await client.close();
   return solicitudes;
