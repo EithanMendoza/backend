@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const notificacionesModel = require('../models/notificaciones'); // Asumiendo que existe este modelo
-
+const solicitudesModel = require('../models/solicitudesModel.js');
 // Obtener solicitudes pendientes
 exports.getSolicitudesPendientes = async (req, res) => {
   try {
@@ -11,37 +11,35 @@ exports.getSolicitudesPendientes = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener las solicitudes pendientes', detalle: err.message });
   }
 };
-
-// Aceptar una solicitud
 exports.aceptarSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
   const tecnicoId = req.tecnico ? req.tecnico.id : null;
+
+  console.log("🛠️ Técnico autenticado para aceptar solicitud:", tecnicoId);
+  console.log("🔎 ID de la solicitud recibida:", solicitudId);
 
   if (!tecnicoId) {
     return res.status(403).json({ error: 'Acceso no autorizado.' });
   }
 
   try {
-    // Generar un código aleatorio
     const codigoInicial = crypto.randomBytes(3).toString('hex').toUpperCase();
 
     const aceptada = await solicitudesModel.aceptarSolicitud(solicitudId, tecnicoId, codigoInicial);
 
     if (!aceptada) {
+      console.warn("⚠️ Solicitud no encontrada o ya aceptada:", solicitudId);
       return res.status(404).json({ error: 'Solicitud no encontrada o ya ha sido aceptada.' });
     }
 
-    // Crear notificación
-    const mensaje = `Un técnico ha sido asignado a tu solicitud. Código: ${codigoInicial}`;
-    await notificacionesModel.crearNotificacion(tecnicoId, mensaje);
+    console.log("✅ Solicitud aceptada:", solicitudId);
 
-    res.status(200).json({ mensaje: 'Solicitud aceptada. El usuario ha sido notificado.' });
+    res.status(200).json({ mensaje: 'Solicitud aceptada.' });
   } catch (err) {
-    console.error('Error al aceptar la solicitud:', err);
+    console.error("❌ Error al aceptar solicitud:", err);
     res.status(500).json({ error: 'Error al aceptar la solicitud.', detalle: err.message });
   }
 };
-
 // Cancelar una solicitud
 exports.cancelarSolicitud = async (req, res) => {
   const { solicitudId } = req.params;

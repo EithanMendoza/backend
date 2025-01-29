@@ -31,7 +31,7 @@ exports.findTecnicoByEmail = async (email) => {
   return tecnico;
 };
 
-// Registrar sesión de técnico
+// Registrar sesión de técnico con JWT
 exports.registerSession = async (session) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
