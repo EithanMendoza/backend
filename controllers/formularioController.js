@@ -3,32 +3,21 @@ const { ObjectId } = require('mongodb');
 
 // Crear una nueva solicitud de servicio
 exports.crearSolicitud = async (req, res) => {
-  const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
-
-  if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
-  }
-
   try {
+    const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
+
+    if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    }
+
+    if (!ObjectId.isValid(tipo_servicio_id)) {
+      return res.status(400).json({ error: "El tipo de servicio ID no es válido." });
+    }
+
     const userId = req.user.id;
-
-    // Verificar si el usuario ya tiene una solicitud pendiente
-    const solicitudActiva = await formularioModel.verificarSolicitudActiva(userId);
-    if (solicitudActiva) {
-      return res.status(400).json({ error: 'Ya tienes una solicitud pendiente en curso.' });
-    }
-
-    // Validar el tipo de servicio
-    const nombreServicio = await formularioModel.validarTipoServicio(tipo_servicio_id);
-    if (!nombreServicio) {
-      return res.status(400).json({ error: 'Tipo de servicio no válido.' });
-    }
-
-    // Crear la solicitud
     const solicitudId = await formularioModel.crearSolicitud({
-      userId,
-      tipo_servicio_id,
-      nombreServicio,
+      userId: new ObjectId(userId),
+      tipo_servicio_id: new ObjectId(tipo_servicio_id),
       marca_ac,
       tipo_ac,
       detalles,
@@ -38,12 +27,12 @@ exports.crearSolicitud = async (req, res) => {
     });
 
     res.status(201).json({
-      mensaje: 'Solicitud de servicio creada correctamente',
+      mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
     });
   } catch (err) {
-    console.error('Error al crear la solicitud de servicio:', err);
-    res.status(500).json({ error: 'Error al crear la solicitud de servicio', detalle: err.message });
+    console.error("Error al crear la solicitud de servicio:", err);
+    res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
 
