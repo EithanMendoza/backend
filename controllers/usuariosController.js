@@ -1,15 +1,15 @@
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 const usuariosModel = require('../models/autenticacionUsuario');
 
-const saltRounds = 10; // Número de rondas para encriptar la contraseña
+const saltRounds = 10;
 
-// Registrar usuario
+// 📌 REGISTRAR USUARIO
 exports.registerUsuario = async (req, res) => {
   const { nombre_usuario, email, password } = req.body;
 
   try {
-    // Encriptar la contraseña
+    // Encriptar la contraseña antes de guardarla
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Crear el objeto usuario
@@ -30,7 +30,7 @@ exports.registerUsuario = async (req, res) => {
   }
 };
 
-// Iniciar sesión de usuario
+// 📌 INICIAR SESIÓN (LOGIN)
 exports.loginUsuario = async (req, res) => {
   const { email, password } = req.body;
 
@@ -42,20 +42,24 @@ exports.loginUsuario = async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Comparar contraseñas
+    // Comparar contraseñas encriptadas
     const match = await bcrypt.compare(password, usuario.password);
 
     if (!match) {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
-    // Generar un token de sesión único
-    const sessionToken = crypto.randomBytes(32).toString('hex');
+    // 🔥 Generar JWT en lugar de `session_token`
+    const token = jwt.sign(
+      { userId: usuario._id, email: usuario.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '12h' } // Token válido por 12 horas
+    );
 
-    // Registrar la sesión
+    // Registrar la sesión en la base de datos con el JWT
     const session = {
       usuario_id: usuario._id,
-      session_token: sessionToken,
+      session_token: token,
       tiempo_inicio: new Date(),
     };
 
@@ -63,7 +67,7 @@ exports.loginUsuario = async (req, res) => {
 
     res.status(200).json({
       mensaje: 'Inicio de sesión exitoso',
-      session_token: sessionToken,
+      token, // 🔥 Enviar el JWT al frontend
       usuario: { id: usuario._id, nombre_usuario: usuario.nombre_usuario, email: usuario.email },
     });
   } catch (error) {
@@ -72,11 +76,18 @@ exports.loginUsuario = async (req, res) => {
   }
 };
 
-// Cerrar sesión de usuario
+// 📌 CERRAR SESIÓN (LOGOUT)
 exports.logoutUsuario = async (req, res) => {
-  const token = req.headers['authorization'];
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No se ha proporcionado un token de sesión.' });
+  }
+
+  const token = authHeader.split(' ')[1]; // Extraer token sin "Bearer"
 
   try {
+    // Eliminar la sesión de la base de datos
     const sessionClosed = await usuariosModel.closeSession(token);
 
     if (!sessionClosed) {
@@ -90,8 +101,7 @@ exports.logoutUsuario = async (req, res) => {
   }
 };
 
-
-// Listar usuarios
+// 📌 LISTAR USUARIOS (PAGINACIÓN)
 exports.listUsuarios = async (req, res) => {
   try {
     const db = req.app.locals.db; // Obtener la conexión de la base de datos
@@ -128,4 +138,3 @@ exports.listUsuarios = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
   }
 };
-
