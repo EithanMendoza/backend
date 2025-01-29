@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const verificarSesion = require('../middleware/authMiddleware');
-const verificarPerfil = require('../middleware/perfilmiddleware');
 const formularioController = require('../controllers/formularioController');
 
-// Rutas
-router.post('/crear-solicitud', verificarSesion, verificarPerfil, formularioController.crearSolicitud);
-router.delete('/cancelar-solicitud/:solicitudId', verificarSesion, formularioController.cancelarSolicitud);
-router.get('/pendientes', verificarSesion, formularioController.obtenerSolicitudesPendientes);
+router.post('/crear-solicitud', verificarSesion, formularioController.crearSolicitud);
+router.get('/solicitudes-disponibles', verificarSesion, formularioController.obtenerSolicitudesDisponibles);
+router.patch('/aceptar-solicitud/:solicitudId', verificarSesion, formularioController.asignarTecnico);
+router.delete('/eliminar-expiradas', formularioController.eliminarSolicitudesExpiradas);
 
 module.exports = router;

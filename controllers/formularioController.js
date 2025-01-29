@@ -1,6 +1,7 @@
 const formularioModel = require('../models/formularioModel');
+const { ObjectId } = require('mongodb');
 
-// Crear una solicitud de servicio
+// Crear una nueva solicitud de servicio
 exports.crearSolicitud = async (req, res) => {
   const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
 
@@ -46,44 +47,42 @@ exports.crearSolicitud = async (req, res) => {
   }
 };
 
-// Cancelar una solicitud de servicio
-exports.cancelarSolicitud = async (req, res) => {
-  const { solicitudId } = req.params;
-  const userId = req.user.id;
-
+// Obtener todas las solicitudes pendientes (para técnicos)
+exports.obtenerSolicitudesDisponibles = async (req, res) => {
   try {
-    // Verificar el estado del progreso
-    const estado = await formularioModel.obtenerEstadoProgreso(solicitudId);
-    if (estado === 'en_camino') {
-      return res.status(400).json({ error: 'No se puede cancelar la solicitud: el técnico ya está en camino.' });
-    }
-
-    // Cancelar la solicitud
-    const cancelada = await formularioModel.cancelarSolicitud(solicitudId, userId);
-    if (!cancelada) {
-      return res.status(404).json({ error: 'Solicitud no encontrada o no se puede cancelar.' });
-    }
-
-    res.status(200).json({ mensaje: 'Solicitud cancelada correctamente.' });
+    const solicitudes = await formularioModel.obtenerSolicitudesDisponibles();
+    res.status(200).json(solicitudes);
   } catch (err) {
-    console.error('Error al cancelar la solicitud:', err);
-    res.status(500).json({ error: 'Error al cancelar la solicitud', detalle: err.message });
+    console.error('Error al obtener solicitudes disponibles:', err);
+    res.status(500).json({ error: 'Error al obtener solicitudes disponibles', detalle: err.message });
   }
 };
 
-// Obtener estado de solicitudes pendientes
-exports.obtenerSolicitudesPendientes = async (req, res) => {
-  const userId = req.user.id;
+// Un técnico acepta la solicitud
+exports.asignarTecnico = async (req, res) => {
+  const { solicitudId } = req.params;
+  const tecnicoId = req.user.id; // El técnico autenticado
 
   try {
-    const solicitud = await formularioModel.obtenerSolicitudPendiente(userId);
-    if (!solicitud) {
-      return res.status(404).json({ mensaje: 'No tienes solicitudes activas registradas.' });
+    const asignado = await formularioModel.asignarTecnico(solicitudId, tecnicoId);
+    if (!asignado) {
+      return res.status(400).json({ error: 'Solicitud ya fue tomada o no existe.' });
     }
 
-    res.status(200).json(solicitud);
+    res.status(200).json({ mensaje: 'Solicitud asignada al técnico correctamente.' });
   } catch (err) {
-    console.error('Error al obtener el estado de la solicitud:', err);
-    res.status(500).json({ error: 'Error al obtener el estado de la solicitud', detalle: err.message });
+    console.error('Error al asignar técnico:', err);
+    res.status(500).json({ error: 'Error al asignar técnico', detalle: err.message });
+  }
+};
+
+// Eliminar solicitudes expiradas (cron job)
+exports.eliminarSolicitudesExpiradas = async (req, res) => {
+  try {
+    const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
+    res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
+  } catch (err) {
+    console.error('Error al eliminar solicitudes expiradas:', err);
+    res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
   }
 };
