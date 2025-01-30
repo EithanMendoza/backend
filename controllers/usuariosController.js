@@ -35,13 +35,13 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Guardar usuario en la base de datos
-    const newUser = await usuariosModel.createUsuario({
+    const newUserId = await usuariosModel.registerUsuario({
       nombre_usuario,
       email,
       password: hashedPassword
-    });
+    });    
 
-    res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUser._id });
+    res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUserId });
   } catch (err) {
     console.error('Error en el registro:', err);
     res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
