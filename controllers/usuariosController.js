@@ -4,29 +4,47 @@ const usuariosModel = require('../models/autenticacionUsuario');
 
 const saltRounds = 10;
 
-// 📌 REGISTRAR USUARIO
-exports.registerUsuario = async (req, res) => {
+// 📌 Validación de contraseña en el backend
+const validatePassword = (password) => {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[.,])[A-Za-z\d.,]{6,}$/;
+  return regex.test(password);
+};
+
+// 📌 REGISTRO DE USUARIO
+exports.registerUser = async (req, res) => {
   const { nombre_usuario, email, password } = req.body;
 
+  if (!nombre_usuario || !email || !password) {
+    return res.status(400).json({ error: "Todos los campos son obligatorios." });
+  }
+
+  if (!validatePassword(password)) {
+    return res.status(400).json({
+      error: "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula, un número y un símbolo (.,)"
+    });
+  }
+
   try {
-    // Encriptar la contraseña antes de guardarla
+    // Verificar si el usuario ya existe
+    const usuarioExistente = await usuariosModel.findUsuarioByEmail(email);
+    if (usuarioExistente) {
+      return res.status(400).json({ error: "El correo ya está registrado." });
+    }
+
+    // Hashear la contraseña
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Crear el objeto usuario
-    const usuario = {
+    // Guardar usuario en la base de datos
+    const newUser = await usuariosModel.createUsuario({
       nombre_usuario,
       email,
-      password: hashedPassword,
-      created_at: new Date(),
-    };
+      password: hashedPassword
+    });
 
-    // Guardar en la base de datos
-    const usuarioId = await usuariosModel.registerUsuario(usuario);
-
-    res.status(201).json({ mensaje: 'Usuario registrado correctamente', usuarioId });
-  } catch (error) {
-    console.error('Error al registrar el usuario:', error);
-    res.status(500).json({ error: 'Error al registrar el usuario', detalle: error.message });
+    res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUser._id });
+  } catch (err) {
+    console.error('Error en el registro:', err);
+    res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
   }
 };
 
@@ -39,17 +57,17 @@ exports.loginUsuario = async (req, res) => {
     const usuario = await usuariosModel.findUsuarioByEmail(email);
 
     if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     // Comparar contraseñas encriptadas
     const match = await bcrypt.compare(password, usuario.password);
 
     if (!match) {
-      return res.status(401).json({ error: 'Contraseña incorrecta' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // 🔥 Generar JWT en lugar de `session_token`
+    // Generar JWT
     const token = jwt.sign(
       { userId: usuario._id, email: usuario.email },
       process.env.JWT_SECRET,
@@ -67,7 +85,7 @@ exports.loginUsuario = async (req, res) => {
 
     res.status(200).json({
       mensaje: 'Inicio de sesión exitoso',
-      token, // 🔥 Enviar el JWT al frontend
+      token,
       usuario: { id: usuario._id, nombre_usuario: usuario.nombre_usuario, email: usuario.email },
     });
   } catch (error) {
@@ -84,7 +102,7 @@ exports.logoutUsuario = async (req, res) => {
     return res.status(401).json({ error: 'No se ha proporcionado un token de sesión.' });
   }
 
-  const token = authHeader.split(' ')[1]; // Extraer token sin "Bearer"
+  const token = authHeader.split(' ')[1];
 
   try {
     // Eliminar la sesión de la base de datos
@@ -104,28 +122,21 @@ exports.logoutUsuario = async (req, res) => {
 // 📌 LISTAR USUARIOS (PAGINACIÓN)
 exports.listUsuarios = async (req, res) => {
   try {
-    const db = req.app.locals.db; // Obtener la conexión de la base de datos
+    const db = req.app.locals.db;
 
-    // Leer parámetros de la solicitud
-    const page = parseInt(req.query.page) || 1; // Página actual (por defecto 1)
-    const limit = parseInt(req.query.limit) || 100; // Límite de documentos por página (por defecto 100)
-    const skip = (page - 1) * limit; // Calcular cuántos documentos omitir
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    const skip = (page - 1) * limit;
 
-    // Obtener usuarios con paginación
-    const usuarios = await db
-      .collection('usuarios') // Cambia 'usuarios' por el nombre de tu colección si es diferente
+    const usuarios = await db.collection('usuarios')
       .find()
       .skip(skip)
       .limit(limit)
       .toArray();
 
-    // Obtener el total de documentos
     const totalUsuarios = await db.collection('usuarios').countDocuments();
-
-    // Calcular total de páginas
     const totalPages = Math.ceil(totalUsuarios / limit);
 
-    // Responder con los usuarios y metadatos de paginación
     res.status(200).json({
       page,
       limit,
