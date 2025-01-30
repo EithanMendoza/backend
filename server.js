@@ -45,7 +45,7 @@ app.use('/completado', completadoRouter);
 app.use('/formulario', formularioRouter);
 app.use('/home', homeRouter);
 app.use('/progreso', progresoRouter);
-app.use('/autenticacionUsuario', autenticacionUsuariosRoutes); // Rutas de autenticación de usuarios
+app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {

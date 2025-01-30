@@ -49,7 +49,7 @@ exports.registerUser = async (req, res) => {
 };
 
 // 📌 INICIAR SESIÓN (LOGIN)
-exports.loginUsuario = async (req, res) => {
+exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -95,7 +95,7 @@ exports.loginUsuario = async (req, res) => {
 };
 
 // 📌 CERRAR SESIÓN (LOGOUT)
-exports.logoutUsuario = async (req, res) => {
+exports.logoutUser = async (req, res) => {
   const authHeader = req.headers['authorization'];
 
   if (!authHeader) {
@@ -120,7 +120,7 @@ exports.logoutUsuario = async (req, res) => {
 };
 
 // 📌 LISTAR USUARIOS (PAGINACIÓN)
-exports.listUsuarios = async (req, res) => {
+exports.listUsers = async (req, res) => {
   try {
     const db = req.app.locals.db;
 
