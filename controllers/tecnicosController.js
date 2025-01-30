@@ -1,10 +1,10 @@
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
-const tecnicosModel = require('../models/autenticacionTecnicos'); // Modelo importado
+const tecnicosModel = require('../models/autenticacionTecnicos');
 
-const saltRounds = 10; // Número de rondas para encriptar la contraseña
+const saltRounds = 10;
 
-// Registrar técnico
+// **Registrar Técnico**
 exports.registrarTecnico = async (req, res) => {
   const { nombre_usuario, email, password, especialidad, telefono } = req.body;
 
@@ -13,16 +13,13 @@ exports.registrarTecnico = async (req, res) => {
   }
 
   try {
-    // Verificar si el técnico ya está registrado
     const tecnicoExistente = await tecnicosModel.findTecnicoByEmail(email);
     if (tecnicoExistente) {
       return res.status(400).json({ error: 'El email ya está registrado.' });
     }
 
-    // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Crear el objeto técnico
     const tecnico = {
       nombre_usuario,
       email,
@@ -32,7 +29,6 @@ exports.registrarTecnico = async (req, res) => {
       created_at: new Date(),
     };
 
-    // Guardar en la base de datos
     const tecnicoId = await tecnicosModel.registerTecnico(tecnico);
 
     res.status(201).json({
@@ -41,14 +37,11 @@ exports.registrarTecnico = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al registrar el técnico:', error);
-    res.status(500).json({
-      error: 'Error interno al registrar el técnico.',
-      detalle: error.message,
-    });
+    res.status(500).json({ error: 'Error interno al registrar el técnico.', detalle: error.message });
   }
 };
 
-// Iniciar sesión de técnico
+// **Iniciar sesión de técnico**
 exports.iniciarSesionTecnico = async (req, res) => {
   const { email, password } = req.body;
 
@@ -57,24 +50,22 @@ exports.iniciarSesionTecnico = async (req, res) => {
   }
 
   try {
-    // Buscar técnico por email
     const tecnico = await tecnicosModel.findTecnicoByEmail(email);
-
     if (!tecnico) {
       return res.status(404).json({ error: 'Técnico no encontrado.' });
     }
 
-    // Comparar contraseñas
     const match = await bcrypt.compare(password, tecnico.password);
-
     if (!match) {
       return res.status(401).json({ error: 'Contraseña incorrecta.' });
     }
 
-    // Generar un token de sesión único
-    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const sessionToken = jwt.sign(
+      { tecnico_id: tecnico._id, email: tecnico.email }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '1h' }
+    );
 
-    // Registrar la sesión
     const session = {
       tecnico_id: tecnico._id,
       session_token: sessionToken,
@@ -94,7 +85,7 @@ exports.iniciarSesionTecnico = async (req, res) => {
   }
 };
 
-// Cerrar sesión de técnico
+// **Cerrar sesión de técnico**
 exports.cerrarSesionTecnico = async (req, res) => {
   const token = req.headers['authorization'];
 
@@ -115,33 +106,16 @@ exports.cerrarSesionTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error al cerrar sesión.', detalle: error.message });
   }
 };
-
 exports.listTecnicos = async (req, res) => {
   try {
-    const db = req.app.locals.db; // Obtener la conexión de la base de datos
-    const page = parseInt(req.query.page) || 0; // Página actual (0 por defecto)
-    const limit = parseInt(req.query.limit) || 100; // Número de documentos por página (100 por defecto)
+    const client = new MongoClient(process.env.MONGO_URI);
+    await client.connect();
+    const db = client.db('AirTecs3');
 
-    // Calcular el número de documentos a saltar
-    const skip = page * limit;
+    const tecnicos = await db.collection('tecnicos_servicio').find().toArray();
+    await client.close();
 
-    // Obtener técnicos con paginación
-    const tecnicos = await db.collection('tecnicos_servicio')
-      .find()
-      .skip(skip)
-      .limit(limit)
-      .toArray();
-
-    // Obtener el número total de técnicos
-    const totalTecnicos = await db.collection('tecnicos_servicio').countDocuments();
-
-    res.status(200).json({
-      page,
-      limit,
-      totalTecnicos,
-      totalPages: Math.ceil(totalTecnicos / limit),
-      tecnicos,
-    });
+    res.status(200).json({ tecnicos });
   } catch (err) {
     console.error('Error al listar técnicos:', err);
     res.status(500).json({ error: 'Error al obtener la lista de técnicos' });
