@@ -24,33 +24,62 @@ exports.obtenerSolicitudEnCurso = async (userId) => {
   return solicitud;
 };
 
-// ✅ Crear una nueva solicitud con validación de usuario
 exports.crearSolicitud = async (data) => {
   const client = await connectToDatabase();
   try {
     const db = client.db('AirTecs3');
-
     const result = await db.collection('solicitudes_servicio').insertOne({
-      user_id: new ObjectId(data.userId), // 🔥 Unificado con obtenerSolicitudEnCurso
-      tipo_servicio_id: new ObjectId(data.tipo_servicio_id),
+      user_id: ObjectId.createFromHexString(data.userId),
+      tipo_servicio_id: ObjectId.createFromHexString(data.tipo_servicio_id),
+      nombre_servicio: data.nombreServicio || "Sin especificar",
       marca_ac: data.marca_ac,
       tipo_ac: data.tipo_ac,
       detalles: data.detalles,
       fecha: new Date(data.fecha),
       hora: data.hora,
       direccion: data.direccion,
-      estado: 'pendiente', // 🔥 Se marca como pendiente
+      estado: 'pendiente',
       created_at: new Date(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expira en 12 horas
+      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
 
+    console.log("✅ Solicitud insertada con ID:", result.insertedId);
     return result.insertedId;
   } finally {
     await client.close();
   }
 };
 
-// ✅ Obtener todas las solicitudes pendientes (para los técnicos)
+
+// Verificar si el usuario ya tiene una solicitud activa
+exports.verificarSolicitudActiva = async (userId) => {
+  const client = await connectToDatabase();
+  try {
+    const db = client.db('AirTecs3');
+    return await db.collection('solicitudes_servicio').findOne({
+      user_id: new ObjectId(userId),
+      estado: 'pendiente',
+    });
+  } finally {
+    await client.close();
+  }
+};
+
+// Validar el tipo de servicio
+exports.validarTipoServicio = async (tipo_servicio_id) => {
+  const client = await connectToDatabase();
+  try {
+    const db = client.db('AirTecs3');
+    const servicio = await db.collection('tipos_servicio').findOne({ _id: new ObjectId(tipo_servicio_id) });
+    return servicio ? servicio.nombre_servicio : null;
+  } finally {
+    await client.close();
+  }
+};
+
+
+
+// Obtener todas las solicitudes pendientes (para los técnicos)
 exports.obtenerSolicitudesDisponibles = async () => {
   const client = await connectToDatabase();
   try {
@@ -61,7 +90,7 @@ exports.obtenerSolicitudesDisponibles = async () => {
   }
 };
 
-// ✅ Un técnico acepta una solicitud y la asigna
+// Un técnico acepta una solicitud y la asigna
 exports.asignarTecnico = async (solicitudId, tecnicoId) => {
   const client = await connectToDatabase();
   try {
@@ -76,7 +105,7 @@ exports.asignarTecnico = async (solicitudId, tecnicoId) => {
   }
 };
 
-// ✅ Cancelar una solicitud por parte del usuario
+// Cancelar una solicitud por parte del usuario
 exports.cancelarSolicitud = async (solicitudId, userId) => {
   const client = await connectToDatabase();
   try {
@@ -91,7 +120,7 @@ exports.cancelarSolicitud = async (solicitudId, userId) => {
   }
 };
 
-// ✅ Eliminar solicitudes vencidas (expiradas)
+// Eliminar solicitudes vencidas (expiradas)
 exports.eliminarSolicitudesExpiradas = async () => {
   const client = await connectToDatabase();
   try {

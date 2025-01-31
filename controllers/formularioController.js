@@ -73,14 +73,13 @@ exports.asignarTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error al asignar técnico', detalle: err.message });
   }
 };
-
 // Eliminar solicitudes expiradas (cron job)
 exports.eliminarSolicitudesExpiradas = async (req, res) => {
   try {
-    const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
-    res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
+      const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
+      res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
   } catch (err) {
-    console.error('Error al eliminar solicitudes expiradas:', err);
-    res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
+      console.error('Error al eliminar solicitudes expiradas:', err);
+      res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
   }
 };
