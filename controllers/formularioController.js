@@ -1,31 +1,39 @@
 const formularioModel = require('../models/formularioModel');
 const { ObjectId } = require('mongodb');
 
-// ✅ Crear una nueva solicitud de servicio con validación
 exports.crearSolicitud = async (req, res) => {
   try {
     const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
+    const userId = req.user.id;
 
     if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
       return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
 
-    if (!ObjectId.isValid(tipo_servicio_id)) {
-      return res.status(400).json({ error: "El tipo de servicio ID no es válido." });
+    if (!ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "ID de usuario no válido." });
     }
 
-    const userId = new ObjectId(req.user.id);
+    if (!ObjectId.isValid(tipo_servicio_id)) {
+      return res.status(400).json({ error: "ID del tipo de servicio no válido." });
+    }
 
-    // 🔥 Verificar si el usuario ya tiene una solicitud activa
+    console.log("🔍 Verificando si el usuario ya tiene una solicitud en curso...");
+
+    // 🔥 Verificar si el usuario ya tiene una solicitud en curso
     const solicitudEnCurso = await formularioModel.obtenerSolicitudEnCurso(userId);
+
     if (solicitudEnCurso) {
+      console.log("❌ Usuario ya tiene una solicitud activa:", solicitudEnCurso);
       return res.status(400).json({ error: "Ya tienes una solicitud en curso. Debes finalizarla antes de crear otra." });
     }
 
-    // ✅ Si no tiene solicitudes en curso, se permite crear una nueva
-    const solicitudId = await formularioModel.crearSolicitud({
+    console.log("✅ Usuario NO tiene solicitudes en curso, procediendo a crear...");
+
+    // Crear nueva solicitud y recibir el código de confirmación
+    const { solicitudId, codigoConfirmacion } = await formularioModel.crearSolicitud({
       userId,
-      tipo_servicio_id: new ObjectId(tipo_servicio_id),
+      tipo_servicio_id,
       marca_ac,
       tipo_ac,
       detalles,
@@ -38,12 +46,14 @@ exports.crearSolicitud = async (req, res) => {
     res.status(201).json({
       mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
+      codigoConfirmacion, // 🔥 Enviar el código de confirmación en la respuesta
     });
   } catch (err) {
-    console.error("Error al crear la solicitud de servicio:", err);
+    console.error("❌ Error al crear la solicitud de servicio:", err.message);
     res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
+
 
 // Obtener todas las solicitudes pendientes (para técnicos)
 exports.obtenerSolicitudesDisponibles = async (req, res) => {

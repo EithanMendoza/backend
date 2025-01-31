@@ -65,3 +65,19 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
     await client.close();
   }
 };
+// 📌 Obtener la solicitud en curso de un usuario
+exports.getSolicitudEnCurso = async (userId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  try {
+    const solicitud = await db.collection('solicitudes_servicio').findOne({
+      user_id: new ObjectId(userId),
+      estado: { $in: ["pendiente", "en proceso", "aceptada"] } // Estados activos
+    });
+
+    return solicitud;
+  } finally {
+    await client.close();
+  }
+};  

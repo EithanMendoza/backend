@@ -53,3 +53,23 @@ exports.deleteNotificacion = async (userId, notificacionId) => {
   await client.close();
   return result.deletedCount > 0;
 };
+
+
+// ✅ Función para crear notificación
+exports.crearNotificacion = async (userId, mensaje) => {
+  const client = await connectToDatabase();
+  try {
+    const db = client.db('AirTecs3');
+    const result = await db.collection('notificaciones').insertOne({
+      user_id: new ObjectId(userId),
+      mensaje,
+      fecha: new Date(),
+      leida: false,
+    });
+
+    console.log("✅ Notificación creada con ID:", result.insertedId);
+    return result.insertedId;
+  } finally {
+    await client.close();
+  }
+};

@@ -14,23 +14,30 @@ exports.obtenerSolicitudEnCurso = async (userId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
+  console.log("🔍 Buscando solicitud en curso para userId:", userId); // Debugging
+
   const solicitud = await db.collection('solicitudes_servicio').findOne({
-    user_id: new ObjectId(userId), // 🔥 Cambiado para coincidir con la BD
+    user_id: new ObjectId(userId),
     estado: { $in: ["pendiente", "en proceso"] } // 🚀 Solo consultas activas
   });
 
-  console.log("🔍 Solicitud en curso encontrada:", solicitud); // Debug para verificar
+  console.log("🔍 Resultado de solicitud en curso:", solicitud); // Debugging
   await client.close();
-  return solicitud;
+  return solicitud || null; // ✅ Aseguramos que no retorne undefined
+};
+const generarCodigoConfirmacion = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // Código de 6 dígitos
 };
 
 exports.crearSolicitud = async (data) => {
   const client = await connectToDatabase();
   try {
     const db = client.db('AirTecs3');
+    const codigoConfirmacion = generarCodigoConfirmacion(); // 🔥 Genera el código aquí
+
     const result = await db.collection('solicitudes_servicio').insertOne({
-      user_id: ObjectId.createFromHexString(data.userId),
-      tipo_servicio_id: ObjectId.createFromHexString(data.tipo_servicio_id),
+      user_id: new ObjectId(data.userId),
+      tipo_servicio_id: new ObjectId(data.tipo_servicio_id),
       nombre_servicio: data.nombreServicio || "Sin especificar",
       marca_ac: data.marca_ac,
       tipo_ac: data.tipo_ac,
@@ -39,16 +46,18 @@ exports.crearSolicitud = async (data) => {
       hora: data.hora,
       direccion: data.direccion,
       estado: 'pendiente',
+      codigo_inicial: codigoConfirmacion, // 🔥 Guarda el código en la base de datos
       created_at: new Date(),
       expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
 
-    console.log("✅ Solicitud insertada con ID:", result.insertedId);
-    return result.insertedId;
+    console.log("✅ Solicitud insertada con código:", codigoConfirmacion);
+    return { solicitudId: result.insertedId, codigoConfirmacion }; // 🔥 Devuelve el código para que el controlador lo use
   } finally {
     await client.close();
   }
 };
+
 
 
 // Verificar si el usuario ya tiene una solicitud activa
