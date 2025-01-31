@@ -1,7 +1,6 @@
 const formularioModel = require('../models/formularioModel');
 const { ObjectId } = require('mongodb');
 
-// ✅ Crear una nueva solicitud de servicio con validación
 exports.crearSolicitud = async (req, res) => {
   try {
     const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
@@ -21,9 +20,9 @@ exports.crearSolicitud = async (req, res) => {
 
     console.log("🔍 Verificando si el usuario ya tiene una solicitud en curso...");
 
-    // 🔥 VERIFICAR SI EL USUARIO YA TIENE UNA SOLICITUD EN CURSO
+    // 🔥 Verificar si el usuario ya tiene una solicitud en curso
     const solicitudEnCurso = await formularioModel.obtenerSolicitudEnCurso(userId);
-    
+
     if (solicitudEnCurso) {
       console.log("❌ Usuario ya tiene una solicitud activa:", solicitudEnCurso);
       return res.status(400).json({ error: "Ya tienes una solicitud en curso. Debes finalizarla antes de crear otra." });
@@ -31,8 +30,8 @@ exports.crearSolicitud = async (req, res) => {
 
     console.log("✅ Usuario NO tiene solicitudes en curso, procediendo a crear...");
 
-    // Crear nueva solicitud
-    const solicitudId = await formularioModel.crearSolicitud({
+    // Crear nueva solicitud y recibir el código de confirmación
+    const { solicitudId, codigoConfirmacion } = await formularioModel.crearSolicitud({
       userId,
       tipo_servicio_id,
       marca_ac,
@@ -47,6 +46,7 @@ exports.crearSolicitud = async (req, res) => {
     res.status(201).json({
       mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
+      codigoConfirmacion, // 🔥 Enviar el código de confirmación en la respuesta
     });
   } catch (err) {
     console.error("❌ Error al crear la solicitud de servicio:", err.message);

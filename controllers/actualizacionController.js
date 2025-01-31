@@ -1,8 +1,10 @@
 const progresoModel = require('../models/progresoModel');
 const notificacionesModel = require('../models/notificaciones');
 
+// ✅ Definir los estados del servicio en orden
+const ordenEstados = ['en_camino', 'en_lugar', 'en_proceso', 'finalizado'];
 
-// Actualizar el estado de una solicitud
+// ✅ Actualizar el estado de una solicitud con validaciones
 exports.actualizarEstadoServicio = async (req, res) => {
   const { estado, codigoConfirmacion, detalles } = req.body;
   const { solicitudId } = req.params;
@@ -13,7 +15,7 @@ exports.actualizarEstadoServicio = async (req, res) => {
   }
 
   try {
-    // Verificar el código de confirmación si es necesario
+    // ✅ Verificar el código de confirmación solo para `en_proceso` y `finalizado`
     if (['en_proceso', 'finalizado'].includes(estado)) {
       if (!codigoConfirmacion) {
         return res.status(400).json({ error: 'Se requiere un código de confirmación para este estado.' });
@@ -25,7 +27,7 @@ exports.actualizarEstadoServicio = async (req, res) => {
       }
     }
 
-    // Verificar el orden de los estados
+    // ✅ Verificar el orden de los estados
     const ultimoEstado = await progresoModel.obtenerUltimoEstado(solicitudId);
     const indiceUltimoEstado = ordenEstados.indexOf(ultimoEstado);
     const indiceNuevoEstado = ordenEstados.indexOf(estado);
@@ -34,22 +36,27 @@ exports.actualizarEstadoServicio = async (req, res) => {
       return res.status(400).json({ error: 'El estado no sigue el orden requerido.' });
     }
 
-    // Registrar el progreso
+    // ✅ Obtener el `user_id` asociado a la solicitud
     const userId = await progresoModel.obtenerUserIdDeSolicitud(solicitudId);
+    if (!userId) {
+      return res.status(500).json({ error: 'Error interno: No se encontró el user_id asociado a la solicitud.' });
+    }
+
+    // ✅ Registrar el progreso
     await progresoModel.registrarProgreso(solicitudId, tecnicoId, estado, detalles);
 
-    // Crear una notificación para el usuario
+    // ✅ Crear una notificación para el usuario
     const mensaje = `El estado de tu servicio ha cambiado a: ${estado}. ${detalles || ''}`;
     await notificacionesModel.crearNotificacion(userId, mensaje);
 
     res.status(200).json({ mensaje: 'Estado del servicio y notificación actualizados correctamente.' });
   } catch (err) {
-    console.error('Error al actualizar el estado del servicio:', err);
+    console.error('❌ Error al actualizar el estado del servicio:', err);
     res.status(500).json({ error: 'Error al actualizar el estado del servicio.', detalle: err.message });
   }
 };
 
-// Obtener los servicios finalizados para el técnico
+// ✅ Obtener los servicios finalizados para el técnico
 exports.obtenerServiciosFinalizados = async (req, res) => {
   const tecnicoId = req.tecnico.id;
 
@@ -57,7 +64,7 @@ exports.obtenerServiciosFinalizados = async (req, res) => {
     const servicios = await progresoModel.obtenerServiciosFinalizadosPorTecnico(tecnicoId);
     res.status(200).json(servicios);
   } catch (err) {
-    console.error('Error al obtener los servicios finalizados:', err);
+    console.error('❌ Error al obtener los servicios finalizados:', err);
     res.status(500).json({ error: 'Error al obtener los servicios finalizados.', detalle: err.message });
   }
 };

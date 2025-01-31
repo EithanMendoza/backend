@@ -79,3 +79,24 @@ exports.getSolicitudesAceptadas = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener las solicitudes aceptadas.', detalle: err.message });
   }
 };
+// 📌 Obtener la solicitud en curso del usuario autenticado
+exports.getSolicitudUsuario = async (req, res) => {
+  const userId = req.user ? req.user.id : null;
+
+  if (!userId) {
+    return res.status(403).json({ error: 'Acceso no autorizado.' });
+  }
+
+  try {
+    const solicitud = await solicitudesModel.getSolicitudEnCurso(userId);
+
+    if (!solicitud) {
+      return res.status(404).json({ error: 'No tienes ninguna solicitud en curso.' });
+    }
+
+    res.status(200).json(solicitud);
+  } catch (err) {
+    console.error('Error al obtener la solicitud del usuario:', err);
+    res.status(500).json({ error: 'Error al obtener la solicitud del usuario.', detalle: err.message });
+  }
+};

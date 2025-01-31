@@ -35,6 +35,8 @@ const homeRouter = require('./routes/home');
 const autenticacionUsuariosRoutes = require('./routes/autenticacionUsuario');
 const progresoRouter = require('./routes/progreso');
 const tecnicosRoutes = require('./routes/tecnicos'); // Ruta específica para técnicos
+const solicitudesRoutes = require('./routes/solicitudesRoutes');
+
 
 // Configurar rutas
 app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes); // Rutas de autenticación de técnicos
@@ -46,6 +48,7 @@ app.use('/formulario', formularioRouter);
 app.use('/home', homeRouter);
 app.use('/progreso', progresoRouter);
 app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
+app.use('/solicitudes', solicitudesRoutes);
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {
