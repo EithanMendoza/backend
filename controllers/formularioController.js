@@ -14,9 +14,17 @@ exports.crearSolicitud = async (req, res) => {
       return res.status(400).json({ error: "El tipo de servicio ID no es válido." });
     }
 
-    const userId = req.user.id;
+    const userId = new ObjectId(req.user.id);
+
+    // 🔥 VERIFICAR SI EL USUARIO YA TIENE UNA SOLICITUD EN CURSO
+    const solicitudEnCurso = await formularioModel.obtenerSolicitudEnCurso(userId);
+    if (solicitudEnCurso) {
+      return res.status(400).json({ error: "Ya tienes una solicitud en curso. Debes finalizarla antes de crear otra." });
+    }
+
+    // Si no tiene solicitudes en curso, se permite la creación de una nueva
     const solicitudId = await formularioModel.crearSolicitud({
-      userId: new ObjectId(userId),
+      userId,
       tipo_servicio_id: new ObjectId(tipo_servicio_id),
       marca_ac,
       tipo_ac,
@@ -24,6 +32,7 @@ exports.crearSolicitud = async (req, res) => {
       fecha,
       hora,
       direccion,
+      estado: "pendiente" // 🔥 Agregar estado para identificar solicitudes activas
     });
 
     res.status(201).json({

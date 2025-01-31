@@ -9,18 +9,18 @@ const connectToDatabase = async () => {
   return client;
 };
 
-// Verificar si el usuario ya tiene una solicitud activa
-exports.verificarSolicitudActiva = async (userId) => {
+// Verificar si el usuario ya tiene una solicitud en curso
+exports.obtenerSolicitudEnCurso = async (userId) => {
   const client = await connectToDatabase();
-  try {
-    const db = client.db('AirTecs3');
-    return await db.collection('solicitudes_servicio').findOne({
-      user_id: new ObjectId(userId),
-      estado: 'pendiente',
-    });
-  } finally {
-    await client.close();
-  }
+  const db = client.db('AirTecs3');
+
+  const solicitud = await db.collection('solicitudes_servicio').findOne({
+    userId: new ObjectId(userId),
+    estado: { $in: ["pendiente", "en proceso"] } // 🚀 Solo consultas activas
+  });
+
+  await client.close();
+  return solicitud;
 };
 
 // Validar el tipo de servicio
