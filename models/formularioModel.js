@@ -24,31 +24,52 @@ exports.obtenerSolicitudEnCurso = async (userId) => {
   return solicitud;
 };
 
-exports.crearSolicitud = async (data) => {
-  const client = await connectToDatabase();
+exports.crearSolicitud = async (req, res) => {
   try {
-    const db = client.db('AirTecs3');
-    const result = await db.collection('solicitudes_servicio').insertOne({
-      user_id: ObjectId.createFromHexString(data.userId),
-      tipo_servicio_id: ObjectId.createFromHexString(data.tipo_servicio_id),
-      nombre_servicio: data.nombreServicio || "Sin especificar",
-      marca_ac: data.marca_ac,
-      tipo_ac: data.tipo_ac,
-      detalles: data.detalles,
-      fecha: new Date(data.fecha),
-      hora: data.hora,
-      direccion: data.direccion,
-      estado: 'pendiente',
-      created_at: new Date(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
+    const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
+    const userId = req.user.id;
+
+    if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    }
+
+    if (!ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "ID de usuario no válido." });
+    }
+
+    if (!ObjectId.isValid(tipo_servicio_id)) {
+      return res.status(400).json({ error: "ID del tipo de servicio no válido." });
+    }
+
+    // 🔥 VERIFICAR SI EL USUARIO YA TIENE UNA SOLICITUD EN CURSO
+    const solicitudEnCurso = await formularioModel.obtenerSolicitudEnCurso(userId);
+    if (solicitudEnCurso) {
+      return res.status(400).json({ error: "Ya tienes una solicitud en curso. Debes finalizarla antes de crear otra." });
+    }
+
+    // Crear nueva solicitud
+    const solicitudId = await formularioModel.crearSolicitud({
+      userId,
+      tipo_servicio_id,
+      marca_ac,
+      tipo_ac,
+      detalles,
+      fecha,
+      hora,
+      direccion,
+      estado: "pendiente"
     });
 
-    console.log("✅ Solicitud insertada con ID:", result.insertedId);
-    return result.insertedId;
-  } finally {
-    await client.close();
+    res.status(201).json({
+      mensaje: "Solicitud de servicio creada correctamente",
+      solicitudId,
+    });
+  } catch (err) {
+    console.error("❌ Error al crear la solicitud de servicio:", err.message);
+    res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
+
 
 
 // Verificar si el usuario ya tiene una solicitud activa
