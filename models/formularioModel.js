@@ -9,6 +9,48 @@ const connectToDatabase = async () => {
   return client;
 };
 
+// ✅ Verificar si el usuario ya tiene una solicitud en curso
+exports.obtenerSolicitudEnCurso = async (userId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  const solicitud = await db.collection('solicitudes_servicio').findOne({
+    user_id: new ObjectId(userId), // 🔥 Cambiado para coincidir con la BD
+    estado: { $in: ["pendiente", "en proceso"] } // 🚀 Solo consultas activas
+  });
+
+  console.log("🔍 Solicitud en curso encontrada:", solicitud); // Debug para verificar
+  await client.close();
+  return solicitud;
+};
+
+exports.crearSolicitud = async (data) => {
+  const client = await connectToDatabase();
+  try {
+    const db = client.db('AirTecs3');
+    const result = await db.collection('solicitudes_servicio').insertOne({
+      user_id: ObjectId.createFromHexString(data.userId),
+      tipo_servicio_id: ObjectId.createFromHexString(data.tipo_servicio_id),
+      nombre_servicio: data.nombreServicio || "Sin especificar",
+      marca_ac: data.marca_ac,
+      tipo_ac: data.tipo_ac,
+      detalles: data.detalles,
+      fecha: new Date(data.fecha),
+      hora: data.hora,
+      direccion: data.direccion,
+      estado: 'pendiente',
+      created_at: new Date(),
+      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
+    });
+
+    console.log("✅ Solicitud insertada con ID:", result.insertedId);
+    return result.insertedId;
+  } finally {
+    await client.close();
+  }
+};
+
+
 // Verificar si el usuario ya tiene una solicitud activa
 exports.verificarSolicitudActiva = async (userId) => {
   const client = await connectToDatabase();
@@ -30,32 +72,6 @@ exports.validarTipoServicio = async (tipo_servicio_id) => {
     const db = client.db('AirTecs3');
     const servicio = await db.collection('tipos_servicio').findOne({ _id: new ObjectId(tipo_servicio_id) });
     return servicio ? servicio.nombre_servicio : null;
-  } finally {
-    await client.close();
-  }
-};
-exports.crearSolicitud = async (data) => {
-  const client = await connectToDatabase();
-  try {
-    const db = client.db('AirTecs3');
-    const result = await db.collection('solicitudes_servicio').insertOne({
-      user_id: ObjectId.createFromHexString(data.userId),
-      tipo_servicio_id: ObjectId.createFromHexString(data.tipo_servicio_id),
-      nombre_servicio: data.nombreServicio || "Sin especificar",
-
-      marca_ac: data.marca_ac,
-      tipo_ac: data.tipo_ac,
-      detalles: data.detalles,
-      fecha: new Date(data.fecha),
-      hora: data.hora,
-      direccion: data.direccion,
-      estado: 'pendiente',
-      created_at: new Date(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
-    });
-
-    console.log("✅ Solicitud insertada con ID:", result.insertedId);
-    return result.insertedId;
   } finally {
     await client.close();
   }

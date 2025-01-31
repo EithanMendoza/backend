@@ -1,10 +1,9 @@
 const formularioModel = require('../models/formularioModel');
 const { ObjectId } = require('mongodb');
 
+// ✅ Crear una nueva solicitud de servicio con validación
 exports.crearSolicitud = async (req, res) => {
   try {
-    console.log("📥 Datos recibidos para la nueva solicitud:", req.body);
-
     const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
 
     if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
@@ -15,33 +14,37 @@ exports.crearSolicitud = async (req, res) => {
       return res.status(400).json({ error: "El tipo de servicio ID no es válido." });
     }
 
-    const userId = req.user.id; // Asumimos que el middleware autenticó al usuario
+    const userId = new ObjectId(req.user.id);
 
-    console.log("🛠 Guardando solicitud con userId:", userId);
+    // 🔥 Verificar si el usuario ya tiene una solicitud activa
+    const solicitudEnCurso = await formularioModel.obtenerSolicitudEnCurso(userId);
+    if (solicitudEnCurso) {
+      return res.status(400).json({ error: "Ya tienes una solicitud en curso. Debes finalizarla antes de crear otra." });
+    }
 
+    // ✅ Si no tiene solicitudes en curso, se permite crear una nueva
     const solicitudId = await formularioModel.crearSolicitud({
-      userId: new ObjectId(userId),
+      userId,
       tipo_servicio_id: new ObjectId(tipo_servicio_id),
-      nombreServicio: "Sin especificar", // ✅ Agrega un valor por defecto si es necesario
       marca_ac,
       tipo_ac,
       detalles,
       fecha,
       hora,
       direccion,
+      estado: "pendiente"
     });
-
-    console.log("✅ Solicitud guardada con éxito, ID:", solicitudId);
 
     res.status(201).json({
       mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
     });
   } catch (err) {
-    console.error("❌ Error al crear la solicitud de servicio:", err);
+    console.error("Error al crear la solicitud de servicio:", err);
     res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
+
 // Obtener todas las solicitudes pendientes (para técnicos)
 exports.obtenerSolicitudesDisponibles = async (req, res) => {
   try {
@@ -70,14 +73,13 @@ exports.asignarTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error al asignar técnico', detalle: err.message });
   }
 };
-
 // Eliminar solicitudes expiradas (cron job)
 exports.eliminarSolicitudesExpiradas = async (req, res) => {
   try {
-    const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
-    res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
+      const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
+      res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
   } catch (err) {
-    console.error('Error al eliminar solicitudes expiradas:', err);
-    res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
+      console.error('Error al eliminar solicitudes expiradas:', err);
+      res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
   }
 };
