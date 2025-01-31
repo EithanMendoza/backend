@@ -1,9 +1,10 @@
 const formularioModel = require('../models/formularioModel');
 const { ObjectId } = require('mongodb');
 
-// Crear una nueva solicitud de servicio
 exports.crearSolicitud = async (req, res) => {
   try {
+    console.log("📥 Datos recibidos para la nueva solicitud:", req.body);
+
     const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
 
     if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
@@ -14,10 +15,14 @@ exports.crearSolicitud = async (req, res) => {
       return res.status(400).json({ error: "El tipo de servicio ID no es válido." });
     }
 
-    const userId = req.user.id;
+    const userId = req.user.id; // Asumimos que el middleware autenticó al usuario
+
+    console.log("🛠 Guardando solicitud con userId:", userId);
+
     const solicitudId = await formularioModel.crearSolicitud({
       userId: new ObjectId(userId),
       tipo_servicio_id: new ObjectId(tipo_servicio_id),
+      nombreServicio: "Sin especificar", // ✅ Agrega un valor por defecto si es necesario
       marca_ac,
       tipo_ac,
       detalles,
@@ -26,16 +31,17 @@ exports.crearSolicitud = async (req, res) => {
       direccion,
     });
 
+    console.log("✅ Solicitud guardada con éxito, ID:", solicitudId);
+
     res.status(201).json({
       mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
     });
   } catch (err) {
-    console.error("Error al crear la solicitud de servicio:", err);
+    console.error("❌ Error al crear la solicitud de servicio:", err);
     res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
-
 // Obtener todas las solicitudes pendientes (para técnicos)
 exports.obtenerSolicitudesDisponibles = async (req, res) => {
   try {

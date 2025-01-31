@@ -34,17 +34,15 @@ exports.validarTipoServicio = async (tipo_servicio_id) => {
     await client.close();
   }
 };
-
-// Crear una nueva solicitud sin técnico asignado
 exports.crearSolicitud = async (data) => {
   const client = await connectToDatabase();
   try {
     const db = client.db('AirTecs3');
-
     const result = await db.collection('solicitudes_servicio').insertOne({
-      user_id: new ObjectId(data.userId),
-      tipo_servicio_id: new ObjectId(data.tipo_servicio_id),
-      nombre_servicio: data.nombreServicio,
+      user_id: ObjectId.createFromHexString(data.userId),
+      tipo_servicio_id: ObjectId.createFromHexString(data.tipo_servicio_id),
+      nombre_servicio: data.nombreServicio || "Sin especificar",
+
       marca_ac: data.marca_ac,
       tipo_ac: data.tipo_ac,
       detalles: data.detalles,
@@ -53,14 +51,17 @@ exports.crearSolicitud = async (data) => {
       direccion: data.direccion,
       estado: 'pendiente',
       created_at: new Date(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expira en 12 horas
+      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
 
+    console.log("✅ Solicitud insertada con ID:", result.insertedId);
     return result.insertedId;
   } finally {
     await client.close();
   }
 };
+
+
 
 // Obtener todas las solicitudes pendientes (para los técnicos)
 exports.obtenerSolicitudesDisponibles = async () => {

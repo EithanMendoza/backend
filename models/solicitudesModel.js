@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb'); // ✅ IMPORTACIÓN CORRECTA
 
 const connectToDatabase = async () => {
   const client = new MongoClient(process.env.MONGO_URI);
@@ -23,8 +23,8 @@ exports.aceptarSolicitud = async (solicitudId, tecnicoId, codigoInicial) => {
   const db = client.db('AirTecs3');
 
   const result = await db.collection('solicitudes_servicio').updateOne(
-    { _id: solicitudId, estado: "pendiente" },
-    { $set: { estado: "aceptada", tecnico_id: tecnicoId, codigo: codigoInicial } }
+    { _id: new ObjectId(solicitudId), estado: "pendiente" }, 
+    { $set: { estado: "aceptada", tecnico_id: new ObjectId(tecnicoId), codigo: codigoInicial } }
   );
 
   await client.close();
@@ -37,7 +37,7 @@ exports.cancelarSolicitud = async (solicitudId, tecnicoId) => {
   const db = client.db('AirTecs3');
 
   const result = await db.collection('solicitudes_servicio').updateOne(
-    { _id: solicitudId, tecnico_id: tecnicoId, estado: "aceptada" },
+    { _id: new ObjectId(solicitudId), tecnico_id: new ObjectId(tecnicoId), estado: "aceptada" },
     { $set: { estado: "cancelada" } }
   );
 
@@ -50,8 +50,18 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
-  const solicitudes = await db.collection('solicitudes_servicio').find({ tecnico_id: tecnicoId, estado: "aceptada" }).toArray();
+  try {
+    console.log("🛠 Buscando solicitudes aceptadas para el técnico:", tecnicoId);
 
-  await client.close();
-  return solicitudes;
+    const solicitudes = await db.collection('solicitudes_servicio').find({ 
+      tecnico_id: new ObjectId(tecnicoId), // ✅ ObjectId definido correctamente
+      estado: "aceptada" 
+    }).toArray();
+
+    console.log("📋 Solicitudes encontradas:", solicitudes.length);
+    
+    return solicitudes;
+  } finally {
+    await client.close();
+  }
 };
