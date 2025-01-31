@@ -24,30 +24,16 @@ exports.obtenerSolicitudEnCurso = async (userId) => {
   console.log("🔍 Resultado de solicitud en curso:", solicitud); // Debugging
   await client.close();
   return solicitud || null; // ✅ Aseguramos que no retorne undefined
-<<<<<<< HEAD
-=======
 };
 const generarCodigoConfirmacion = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // Código de 6 dígitos
->>>>>>> 6e1c3cf61f39293bc18e4e903ae8b823dd323134
 };
-
 
 exports.crearSolicitud = async (data) => {
   const client = await connectToDatabase();
   try {
     const db = client.db('AirTecs3');
-<<<<<<< HEAD
-
-    console.log("📌 Datos recibidos para crear solicitud:", data);
-
-    // Validar IDs antes de intentar insertarlos
-    if (!ObjectId.isValid(data.userId) || !ObjectId.isValid(data.tipo_servicio_id)) {
-      throw new Error("ID inválido: userId o tipo_servicio_id deben tener 24 caracteres hexadecimales.");
-    }
-=======
     const codigoConfirmacion = generarCodigoConfirmacion(); // 🔥 Genera el código aquí
->>>>>>> 6e1c3cf61f39293bc18e4e903ae8b823dd323134
 
     const result = await db.collection('solicitudes_servicio').insertOne({
       user_id: new ObjectId(data.userId),
@@ -65,16 +51,8 @@ exports.crearSolicitud = async (data) => {
       expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
 
-<<<<<<< HEAD
-    console.log("✅ Solicitud insertada con ID:", result.insertedId);
-    return result.insertedId;
-  } catch (error) {
-    console.error("❌ Error al crear la solicitud:", error.message);
-    throw error; // Para que el error se propague correctamente al controlador
-=======
     console.log("✅ Solicitud insertada con código:", codigoConfirmacion);
     return { solicitudId: result.insertedId, codigoConfirmacion }; // 🔥 Devuelve el código para que el controlador lo use
->>>>>>> 6e1c3cf61f39293bc18e4e903ae8b823dd323134
   } finally {
     await client.close();
   }
@@ -82,10 +60,6 @@ exports.crearSolicitud = async (data) => {
 
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 6e1c3cf61f39293bc18e4e903ae8b823dd323134
 // Verificar si el usuario ya tiene una solicitud activa
 exports.verificarSolicitudActiva = async (userId) => {
   const client = await connectToDatabase();
