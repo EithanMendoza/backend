@@ -16,7 +16,7 @@ exports.actualizarEstadoServicio = async (req, res) => {
 
   try {
     // ✅ Verificar el código de confirmación solo para `en_proceso` y `finalizado`
-    if (['en_proceso', 'finalizado'].includes(estado)) {
+    if (['en_lugar', 'finalizado'].includes(estado)) {
       if (!codigoConfirmacion) {
         return res.status(400).json({ error: 'Se requiere un código de confirmación para este estado.' });
       }

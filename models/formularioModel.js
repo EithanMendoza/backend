@@ -33,26 +33,25 @@ exports.crearSolicitud = async (data) => {
   const client = await connectToDatabase();
   try {
     const db = client.db('AirTecs3');
-    const codigoConfirmacion = generarCodigoConfirmacion(); // 🔥 Genera el código aquí
+    const codigoConfirmacion = Math.floor(100000 + Math.random() * 900000).toString(); // Código de 6 dígitos
 
     const result = await db.collection('solicitudes_servicio').insertOne({
       user_id: new ObjectId(data.userId),
       tipo_servicio_id: new ObjectId(data.tipo_servicio_id),
-      nombre_servicio: data.nombreServicio || "Sin especificar",
       marca_ac: data.marca_ac,
       tipo_ac: data.tipo_ac,
       detalles: data.detalles,
       fecha: new Date(data.fecha),
       hora: data.hora,
       direccion: data.direccion,
-      estado: 'pendiente',
-      codigo_inicial: codigoConfirmacion, // 🔥 Guarda el código en la base de datos
+      estado: 'pendiente',  // 📌 IMPORTANTE: Se debe insertar como "pendiente"
+      codigo_inicial: codigoConfirmacion,
       created_at: new Date(),
       expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
 
-    console.log("✅ Solicitud insertada con código:", codigoConfirmacion);
-    return { solicitudId: result.insertedId, codigoConfirmacion }; // 🔥 Devuelve el código para que el controlador lo use
+    console.log("✅ Solicitud insertada con estado PENDIENTE:", result.insertedId);
+    return { solicitudId: result.insertedId, codigoConfirmacion };
   } finally {
     await client.close();
   }

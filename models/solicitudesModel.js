@@ -6,15 +6,20 @@ const connectToDatabase = async () => {
   return client;
 };
 
-// Obtener solicitudes pendientes
+// ✅ Obtener todas las solicitudes pendientes (para técnicos) //modificacion
 exports.getSolicitudesPendientes = async () => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
-  const solicitudes = await db.collection('solicitudes_servicio').find({ estado: "pendiente" }).toArray();
-
-  await client.close();
-  return solicitudes;
+  try {
+    const solicitudes = await db.collection('solicitudes_servicio').find({ estado: 'pendiente' }).toArray();
+    return solicitudes;
+  } catch (error) {
+    console.error("❌ Error al obtener solicitudes pendientes:", error);
+    return [];
+  } finally {
+    await client.close();
+  }
 };
 
 // Aceptar una solicitud
