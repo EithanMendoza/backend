@@ -14,61 +14,56 @@ exports.obtenerSolicitudEnCurso = async (userId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
+  console.log("🔍 Buscando solicitud en curso para userId:", userId); // Debugging
+
   const solicitud = await db.collection('solicitudes_servicio').findOne({
-    user_id: new ObjectId(userId), // 🔥 Cambiado para coincidir con la BD
+    user_id: new ObjectId(userId),
     estado: { $in: ["pendiente", "en proceso"] } // 🚀 Solo consultas activas
   });
 
-  console.log("🔍 Solicitud en curso encontrada:", solicitud); // Debug para verificar
+  console.log("🔍 Resultado de solicitud en curso:", solicitud); // Debugging
   await client.close();
-  return solicitud;
+  return solicitud || null; // ✅ Aseguramos que no retorne undefined
 };
 
-exports.crearSolicitud = async (req, res) => {
+
+exports.crearSolicitud = async (data) => {
+  const client = await connectToDatabase();
   try {
-    const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
-    const userId = req.user.id;
+    const db = client.db('AirTecs3');
 
-    if (!tipo_servicio_id || !marca_ac || !tipo_ac || !fecha || !hora || !direccion) {
-      return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    console.log("📌 Datos recibidos para crear solicitud:", data);
+
+    // Validar IDs antes de intentar insertarlos
+    if (!ObjectId.isValid(data.userId) || !ObjectId.isValid(data.tipo_servicio_id)) {
+      throw new Error("ID inválido: userId o tipo_servicio_id deben tener 24 caracteres hexadecimales.");
     }
 
-    if (!ObjectId.isValid(userId)) {
-      return res.status(400).json({ error: "ID de usuario no válido." });
-    }
-
-    if (!ObjectId.isValid(tipo_servicio_id)) {
-      return res.status(400).json({ error: "ID del tipo de servicio no válido." });
-    }
-
-    // 🔥 VERIFICAR SI EL USUARIO YA TIENE UNA SOLICITUD EN CURSO
-    const solicitudEnCurso = await formularioModel.obtenerSolicitudEnCurso(userId);
-    if (solicitudEnCurso) {
-      return res.status(400).json({ error: "Ya tienes una solicitud en curso. Debes finalizarla antes de crear otra." });
-    }
-
-    // Crear nueva solicitud
-    const solicitudId = await formularioModel.crearSolicitud({
-      userId,
-      tipo_servicio_id,
-      marca_ac,
-      tipo_ac,
-      detalles,
-      fecha,
-      hora,
-      direccion,
-      estado: "pendiente"
+    const result = await db.collection('solicitudes_servicio').insertOne({
+      user_id: new ObjectId(data.userId),
+      tipo_servicio_id: new ObjectId(data.tipo_servicio_id),
+      nombre_servicio: data.nombreServicio || "Sin especificar",
+      marca_ac: data.marca_ac,
+      tipo_ac: data.tipo_ac,
+      detalles: data.detalles,
+      fecha: new Date(data.fecha),
+      hora: data.hora,
+      direccion: data.direccion,
+      estado: 'pendiente',
+      created_at: new Date(),
+      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
 
-    res.status(201).json({
-      mensaje: "Solicitud de servicio creada correctamente",
-      solicitudId,
-    });
-  } catch (err) {
-    console.error("❌ Error al crear la solicitud de servicio:", err.message);
-    res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
+    console.log("✅ Solicitud insertada con ID:", result.insertedId);
+    return result.insertedId;
+  } catch (error) {
+    console.error("❌ Error al crear la solicitud:", error.message);
+    throw error; // Para que el error se propague correctamente al controlador
+  } finally {
+    await client.close();
   }
 };
+
 
 
 
