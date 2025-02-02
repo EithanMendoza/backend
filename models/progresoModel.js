@@ -95,8 +95,17 @@ exports.obtenerUltimoEstadoDeSolicitud = async (solicitudId) => {
   return progreso.length > 0 ? progreso[0] : null; // Retorna el objeto completo del progreso
 };
 
-// Obtener progreso y detalles del servicio por solicitud
+// ✅ Función para validar si un ID es de MongoDB
+const esObjectIdValido = (id) => {
+  return ObjectId.isValid(id) && (new ObjectId(id)).toString() === id;
+};
+
+// 🔍 Obtener progreso y detalles del servicio
 exports.obtenerProgresoPorSolicitud = async (solicitudId) => {
+  if (!esObjectIdValido(solicitudId)) {
+    throw new Error('El ID de la solicitud no es válido.');
+  }
+
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
@@ -150,5 +159,4 @@ exports.obtenerProgresoPorSolicitud = async (solicitudId) => {
     })),
   };
 };
-
 
