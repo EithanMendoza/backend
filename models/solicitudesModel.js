@@ -87,33 +87,26 @@ exports.getSolicitudEnCurso = async (userId) => {
   }
 };  
 
-// Obtener la solicitud del usuario y mostrar el tipo de servicio
+// Obtener la solicitud activa de un usuario con detalles del servicio
 exports.obtenerSolicitudPorUsuario = async (userId) => {
   const client = await connectToDatabase();
   const db = client.db("AirTecs3");
 
   try {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
-      {
-        $match: { user_id: userId } // Filtra por usuario
-      },
+      { $match: { user_id: new ObjectId(userId), estado: { $in: ["pendiente", "en proceso"] } } },
       {
         $lookup: {
-          from: "tipos_servicio", // Unir con tipos_servicio
+          from: "tipos_servicio",
           localField: "tipo_servicio_id",
           foreignField: "_id",
-          as: "servicio"
-        }
+          as: "detalle_servicio",
+        },
       },
-      {
-        $unwind: "$servicio" // Extrae el primer elemento del array resultante
-      },
+      { $unwind: { path: "$detalle_servicio", preserveNullAndEmptyArrays: true } },
       {
         $project: {
           _id: 1,
-          user_id: 1,
-          tipo_servicio_id: 1,
-          nombre_servicio: "$servicio.nombre_servicio", // Nombre del servicio
           marca_ac: 1,
           tipo_ac: 1,
           detalles: 1,
@@ -123,12 +116,13 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           estado: 1,
           codigo_inicial: 1,
           created_at: 1,
-          expires_at: 1
-        }
-      }
+          expires_at: 1,
+          nombre_servicio: "$detalle_servicio.nombre_servicio",
+        },
+      },
     ]).toArray();
 
-    return solicitud.length > 0 ? solicitud[0] : null; // Devuelve la primera coincidencia o null
+    return solicitud.length > 0 ? solicitud[0] : null;
   } finally {
     await client.close();
   }
