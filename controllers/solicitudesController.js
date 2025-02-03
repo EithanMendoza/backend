@@ -100,3 +100,20 @@ exports.getSolicitudUsuario = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la solicitud del usuario.', detalle: err.message });
   }
 };
+
+exports.obtenerSolicitudUsuario = async (req, res) => {
+  try {
+    const userId = req.user.id; // Asumimos que el usuario está autenticado y se obtiene su ID
+
+    const solicitud = await solicitudesModel.obtenerSolicitudPorUsuario(userId);
+
+    if (!solicitud) {
+      return res.status(404).json({ error: "No tienes ninguna solicitud activa." });
+    }
+
+    res.status(200).json(solicitud);
+  } catch (err) {
+    console.error("Error al obtener la solicitud del usuario:", err);
+    res.status(500).json({ error: "Error al obtener la solicitud del usuario.", detalle: err.message });
+  }
+};
