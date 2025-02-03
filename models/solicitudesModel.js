@@ -94,12 +94,23 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
 
   try {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
-      { $match: { user_id: new ObjectId(userId), estado: { $in: ["pendiente", "en proceso"] } } },
+      {
+        $match: { 
+          user_id: new ObjectId(userId), 
+          estado: { $in: ["pendiente", "en proceso"] } 
+        }
+      },
       {
         $lookup: {
           from: "tipos_servicio",
-          localField: "tipo_servicio_id",
-          foreignField: "_id",
+          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } }, // Convertimos a string
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } // Convertimos a string para comparar
+              }
+            }
+          ],
           as: "detalle_servicio",
         },
       },
