@@ -103,11 +103,8 @@ exports.getSolicitudUsuario = async (req, res) => {
 
 exports.obtenerSolicitudUsuario = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(403).json({ error: "No autorizado." });
-    }
+    const userId = req.user.id; // Asumimos que el usuario está autenticado y se obtiene su ID
 
-    const userId = req.user.id;
     const solicitud = await solicitudesModel.obtenerSolicitudPorUsuario(userId);
 
     if (!solicitud) {
@@ -120,3 +117,4 @@ exports.obtenerSolicitudUsuario = async (req, res) => {
     res.status(500).json({ error: "Error al obtener la solicitud del usuario.", detalle: err.message });
   }
 };
+

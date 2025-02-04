@@ -88,6 +88,7 @@ exports.getSolicitudEnCurso = async (userId) => {
   }
 };  
 
+
 // Obtener la solicitud activa de un usuario con detalles del servicio
 exports.obtenerSolicitudPorUsuario = async (userId) => {
   const client = await connectToDatabase();
@@ -96,24 +97,18 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
   try {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
       {
-        $match: { 
-          user_id: new ObjectId(userId), 
-          estado: { $in: ["pendiente", "en proceso"] } 
+        $match: {
+          userId: new ObjectId(userId),
+          estado: { $in: ["pendiente", "en proceso", "aceptada"] } // Ahora incluye las aceptadas
         }
       },
       {
         $lookup: {
           from: "tipos_servicio",
-          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } }, // Convertimos a string
-          pipeline: [
-            { 
-              $match: { 
-                $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } // Convertimos a string para comparar
-              }
-            }
-          ],
-          as: "detalle_servicio",
-        },
+          localField: "tipo_servicio_id",
+          foreignField: "_id",
+          as: "detalle_servicio"
+        }
       },
       { $unwind: { path: "$detalle_servicio", preserveNullAndEmptyArrays: true } },
       {
@@ -126,12 +121,14 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           hora: 1,
           direccion: 1,
           estado: 1,
-          codigo_inicial: 1,
+          codigo: {
+            $cond: { if: { $eq: ["$estado", "aceptada"] }, then: "$codigo", else: "Se asignará un código cuando se acepte el servicio" }
+          },
           created_at: 1,
           expires_at: 1,
-          nombre_servicio: "$detalle_servicio.nombre_servicio",
-        },
-      },
+          nombre_servicio: "$detalle_servicio.nombre_servicio"
+        }
+      }
     ]).toArray();
 
     return solicitud.length > 0 ? solicitud[0] : null;
