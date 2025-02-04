@@ -213,6 +213,6 @@ exports.obtenerHistorialProgreso = async (solicitudId) => {
 
     return historial;
   } finally {
-    await client.close();
+    // No cerrar la conexión aquí, ya que puede ser compartida
   }
 };
