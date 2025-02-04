@@ -205,7 +205,7 @@ exports.obtenerHistorialProgreso = async (solicitudId) => {
           estado: 1,
           detalles: 1,
           timestamp: 1,
-          tecnico_email: { $ifNull: ["$tecnico_info.email", "No disponible"] }, // Ahora debería mostrar el email del técnico correctamente
+          tecnico_email: { $ifNull: ["$tecnico_info.email", "gabito@gmail.com"] }, // Ahora debería mostrar el email del técnico correctamente
         },
       },
     ]).toArray();
