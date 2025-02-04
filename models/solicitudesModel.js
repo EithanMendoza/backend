@@ -98,16 +98,22 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
       {
         $match: { 
-          user_id: new ObjectId(userId) 
+          userId: new ObjectId(userId)  // Se asegura que se compara con ObjectId
         }
       },
       {
         $lookup: {
           from: "tipos_servicio",
-          localField: "tipo_servicio_id",
-          foreignField: "_id",
-          as: "detalle_servicio",
-        },
+          let: { tipoServicioId: "$tipo_servicio_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$tipoServicioId"] }
+              }
+            }
+          ],
+          as: "detalle_servicio"
+        }
       },
       { $unwind: { path: "$detalle_servicio", preserveNullAndEmptyArrays: true } },
       {
@@ -120,16 +126,18 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           hora: 1,
           direccion: 1,
           estado: 1,
-          codigo_inicial: 1,
+          codigo: 1,
+          tecnico_id: 1,
           created_at: 1,
           expires_at: 1,
           nombre_servicio: { $ifNull: ["$detalle_servicio.nombre_servicio", "No especificado"] }
-        },
-      },
-    ]).toArray();
+        }
+      }
+    ]).toArray(); // Se coloca correctamente aquí
 
     return solicitud.length > 0 ? solicitud[0] : null;
   } finally {
     await client.close();
   }
 };
+
