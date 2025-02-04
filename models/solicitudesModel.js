@@ -97,9 +97,8 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
   try {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
       {
-        $match: {
-          userId: new ObjectId(userId),
-          estado: { $in: ["pendiente", "en proceso", "aceptada"] } // Ahora incluye las aceptadas
+        $match: { 
+          user_id: new ObjectId(userId) 
         }
       },
       {
@@ -107,8 +106,8 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           from: "tipos_servicio",
           localField: "tipo_servicio_id",
           foreignField: "_id",
-          as: "detalle_servicio"
-        }
+          as: "detalle_servicio",
+        },
       },
       { $unwind: { path: "$detalle_servicio", preserveNullAndEmptyArrays: true } },
       {
@@ -121,14 +120,12 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           hora: 1,
           direccion: 1,
           estado: 1,
-          codigo: {
-            $cond: { if: { $eq: ["$estado", "aceptada"] }, then: "$codigo", else: "Se asignará un código cuando se acepte el servicio" }
-          },
+          codigo_inicial: 1,
           created_at: 1,
           expires_at: 1,
-          nombre_servicio: "$detalle_servicio.nombre_servicio"
-        }
-      }
+          nombre_servicio: { $ifNull: ["$detalle_servicio.nombre_servicio", "No especificado"] }
+        },
+      },
     ]).toArray();
 
     return solicitud.length > 0 ? solicitud[0] : null;
