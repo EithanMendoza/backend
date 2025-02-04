@@ -182,3 +182,37 @@ exports.obtenerSolicitudPorId = async (solicitudId) => {
   await client.close();
   return solicitud;
 };
+
+// Obtener historial de progreso de una solicitud
+exports.obtenerHistorialProgreso = async (solicitudId) => {
+  const client = await connectToDatabase();
+  const db = client.db("AirTecs3");
+
+  try {
+    const historial = await db.collection("progreso_servicio").aggregate([
+      { $match: { solicitud_id: new ObjectId(solicitudId) } },
+      {
+        $lookup: {
+          from: "tecnico_servicio",
+          localField: "tecnico_id",
+          foreignField: "_id",
+          as: "tecnico_info",
+        },
+      },
+      { $unwind: { path: "$tecnico_info", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          estado: 1,
+          detalles: 1,
+          timestamp: 1,
+          tecnico_email: { $ifNull: ["$tecnico_info.email", "Sin asignar"] },
+        },
+      },
+    ]).toArray();
+
+    return historial;
+  } finally {
+    await client.close();
+  }
+};
