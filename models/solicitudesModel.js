@@ -104,12 +104,11 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
       {
         $lookup: {
           from: "tipos_servicio",
-          let: { tipoServicioId: "$tipo_servicio_id" },
+          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } }, // Convertimos a string
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", "$$tipoServicioId"] }
-              }
+                $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } // Comparación correcta
             }
           ],
           as: "detalle_servicio"
