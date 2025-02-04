@@ -59,14 +59,24 @@ exports.obtenerUserIdDeSolicitud = async (solicitudId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
+  console.log("🔍 Buscando userId para la solicitud:", solicitudId); // Debugging
+
   const solicitud = await db.collection('solicitudes_servicio').findOne({
     _id: new ObjectId(solicitudId),
   });
 
-  await client.close();
-  return solicitud ? solicitud.user_id : null;
-};
+  if (!solicitud) {
+    console.error("❌ Error: No se encontró la solicitud en la base de datos.");
+    await client.close();
+    return null;
+  }
 
+  console.log("📌 Solicitud encontrada:", solicitud);
+  console.log("🔎 userId encontrado:", solicitud.userId); // Asegúrate de que el campo sea correcto
+
+  await client.close();
+  return solicitud.userId || null; // Retorna el userId correcto
+};
 // Obtener los servicios finalizados para un técnico
 exports.obtenerServiciosFinalizadosPorTecnico = async (tecnicoId) => {
   const client = await connectToDatabase();
@@ -160,3 +170,15 @@ exports.obtenerProgresoPorSolicitud = async (solicitudId) => {
   };
 };
 
+// Obtener una solicitud por su ID
+exports.obtenerSolicitudPorId = async (solicitudId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  const solicitud = await db.collection('solicitudes_servicio').findOne({
+    _id: new ObjectId(solicitudId),
+  });
+
+  await client.close();
+  return solicitud;
+};

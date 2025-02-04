@@ -1,4 +1,5 @@
 const { MongoClient, ObjectId } = require('mongodb');
+const { dbConnect } = require('../database');
 
 const connectToDatabase = async () => {
   const client = new MongoClient(process.env.MONGO_URI, {
@@ -28,32 +29,23 @@ exports.obtenerSolicitudEnCurso = async (userId) => {
 const generarCodigoConfirmacion = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // Código de 6 dígitos
 };
-
 exports.crearSolicitud = async (data) => {
-  const client = await connectToDatabase();
+  const db = await dbConnect(); // 🔥 Conexión directa a la BD
   try {
-    const db = client.db('AirTecs3');
-    const codigoConfirmacion = Math.floor(100000 + Math.random() * 900000).toString(); // Código de 6 dígitos
+    console.log("📌 Intentando insertar solicitud...");
+    
+    const result = await db.collection('solicitudes_servicio').insertOne(data);
 
-    const result = await db.collection('solicitudes_servicio').insertOne({
-      user_id: new ObjectId(data.userId),
-      tipo_servicio_id: new ObjectId(data.tipo_servicio_id),
-      marca_ac: data.marca_ac,
-      tipo_ac: data.tipo_ac,
-      detalles: data.detalles,
-      fecha: new Date(data.fecha),
-      hora: data.hora,
-      direccion: data.direccion,
-      estado: 'pendiente',  // 📌 IMPORTANTE: Se debe insertar como "pendiente"
-      codigo_inicial: codigoConfirmacion,
-      created_at: new Date(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000),
-    });
+    if (result.insertedId) {
+      console.log("✅ Solicitud insertada con ID:", result.insertedId);
+    } else {
+      console.error("❌ Error: La solicitud no se insertó correctamente.");
+    }
 
-    console.log("✅ Solicitud insertada con estado PENDIENTE:", result.insertedId);
-    return { solicitudId: result.insertedId, codigoConfirmacion };
-  } finally {
-    await client.close();
+    return { solicitudId: result.insertedId };
+  } catch (error) {
+    console.error("❌ Error en la inserción:", error);
+    throw error;
   }
 };
 

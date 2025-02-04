@@ -1,5 +1,6 @@
 const pagosModel = require('../models/pago');
 const notificacionesModel = require('../models/notificaciones'); // Asume que tienes un modelo para notificaciones
+const progresoModel = require('../models/progresoModel'); 
 
 // Iniciar y completar un pago
 exports.procesarPago = async (req, res) => { 

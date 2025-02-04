@@ -16,16 +16,25 @@ exports.actualizarEstadoServicio = async (req, res) => {
 
   try {
     // ✅ Verificar el código de confirmación solo para `en_proceso` y `finalizado`
-    if (['en_lugar', 'finalizado'].includes(estado)) {
-      if (!codigoConfirmacion) {
-        return res.status(400).json({ error: 'Se requiere un código de confirmación para este estado.' });
-      }
+    // ✅ Verificar el código de confirmación solo para `en_proceso` y `finalizado`
+if (['en_lugar', 'finalizado'].includes(estado)) {
+  if (!codigoConfirmacion) {
+    return res.status(400).json({ error: 'Se requiere un código de confirmación para este estado.' });
+  }
 
-      const codigoValido = await progresoModel.verificarCodigoConfirmacion(solicitudId, codigoConfirmacion);
-      if (!codigoValido) {
-        return res.status(400).json({ error: 'Código de confirmación incorrecto.' });
-      }
-    }
+  // 🔥 Asegurar que comparamos con el campo correcto en la BD
+  const solicitud = await progresoModel.obtenerSolicitudPorId(solicitudId);
+  if (!solicitud) {
+    return res.status(404).json({ error: 'Solicitud no encontrada.' });
+  }
+
+  console.log("📌 Código guardado en la BD:", solicitud.codigo);
+  console.log("📩 Código recibido en la petición:", codigoConfirmacion);
+
+  if (solicitud.codigo !== codigoConfirmacion) {
+    return res.status(400).json({ error: 'Código de confirmación incorrecto.' });
+  }
+}
 
     // ✅ Verificar el orden de los estados
     const ultimoEstado = await progresoModel.obtenerUltimoEstado(solicitudId);

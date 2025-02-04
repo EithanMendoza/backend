@@ -59,17 +59,18 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
     console.log("🛠 Buscando solicitudes aceptadas para el técnico:", tecnicoId);
 
     const solicitudes = await db.collection('solicitudes_servicio').find({ 
-      tecnico_id: new ObjectId(tecnicoId), // ✅ ObjectId definido correctamente
+      tecnico_id: new ObjectId(tecnicoId),
       estado: "aceptada" 
     }).toArray();
 
-    console.log("📋 Solicitudes encontradas:", solicitudes.length);
-    
+    console.log("📋 Solicitudes encontradas en MongoDB:", JSON.stringify(solicitudes, null, 2));
+
     return solicitudes;
   } finally {
     await client.close();
   }
 };
+
 // 📌 Obtener la solicitud en curso de un usuario
 exports.getSolicitudEnCurso = async (userId) => {
   const client = await connectToDatabase();
