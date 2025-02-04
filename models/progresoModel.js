@@ -190,23 +190,23 @@ exports.obtenerHistorialProgreso = async (solicitudId) => {
 
   try {
     const historial = await db.collection("progreso_servicio").aggregate([
-      { $match: { solicitud_id: new ObjectId(solicitudId) } },
+      { $match: { solicitud_id: new ObjectId(solicitudId) } }, // Filtra por el ID de la solicitud
       {
         $lookup: {
-          from: "tecnico_servicio",
+          from: "tecnico_servicio", // Une con la tabla de técnicos
           localField: "tecnico_id",
           foreignField: "_id",
           as: "tecnico_info",
         },
       },
-      { $unwind: { path: "$tecnico_info", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$tecnico_info", preserveNullAndEmptyArrays: true } }, // Desanidar el array
       {
         $project: {
           _id: 0,
           estado: 1,
           detalles: 1,
           timestamp: 1,
-          tecnico_email: { $ifNull: ["$tecnico_info.email", "Sin asignar"] },
+          tecnico_email: { $ifNull: ["$tecnico_info.email", "No asignado"] },
         },
       },
     ]).toArray();
