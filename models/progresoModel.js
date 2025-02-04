@@ -183,7 +183,6 @@ exports.obtenerSolicitudPorId = async (solicitudId) => {
   return solicitud;
 };
 
-// Obtener historial de progreso de una solicitud
 exports.obtenerHistorialProgreso = async (solicitudId) => {
   const client = await connectToDatabase();
   const db = client.db("AirTecs3");
@@ -206,13 +205,13 @@ exports.obtenerHistorialProgreso = async (solicitudId) => {
           estado: 1,
           detalles: 1,
           timestamp: 1,
-          tecnico_email: { $ifNull: ["$tecnico_info.email", "No asignado"] },
+          tecnico_email: { $ifNull: ["$tecnico_info.email", "No disponible"] }, // Ahora debería mostrar el email del técnico correctamente
         },
       },
     ]).toArray();
 
     return historial;
   } finally {
-    // No cerrar la conexión aquí, ya que puede ser compartida
+    // No cerrar client.close() aquí
   }
 };
