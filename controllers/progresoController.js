@@ -28,3 +28,19 @@ exports.obtenerProgresoServicio = async (req, res) => {
     res.status(500).json({ error: "Error al obtener el historial de progreso.", detalle: err.message });
   }
 };
+//progresoController fake 
+// ✅ Obtener todas las solicitudes en estado "finalizado" desde `progreso_servicio`
+exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
+  try {
+    const solicitudes = await progresoModel.obtenerSolicitudesFinalizadasT();
+
+    if (!solicitudes || solicitudes.length === 0) {
+      return res.status(404).json({ error: "No hay solicitudes finalizadas disponibles." });
+    }
+
+    res.status(200).json(solicitudes);
+  } catch (err) {
+    console.error("❌ Error al obtener solicitudes finalizadas:", err);
+    res.status(500).json({ error: "Error interno al obtener solicitudes finalizadas.", detalle: err.message });
+  }
+};

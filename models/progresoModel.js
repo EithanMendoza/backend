@@ -215,3 +215,20 @@ exports.obtenerHistorialProgreso = async (solicitudId) => {
     // No cerrar client.close() aquí
   }
 };
+
+/// ✅ Obtener todas las solicitudes en estado "finalizado" desde `progreso_servicio`//fake
+// ✅ Obtener todas las solicitudes en estado "finalizado" desde `progreso_servicio`
+exports.obtenerSolicitudesFinalizadasT = async () => {
+  const client = await connectToDatabase();
+  const db = client.db("AirTecs3");
+
+  try {
+    const solicitudesFinalizadas = await db.collection("progreso_servicio")
+      .find({ estado: "finalizado" }) // Solo solicitudes finalizadas en progreso_servicio
+      .toArray();
+
+    return solicitudesFinalizadas;
+  } finally {
+    await client.close();
+  }
+};
