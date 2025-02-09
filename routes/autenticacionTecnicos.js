@@ -15,4 +15,6 @@ router.post('/logout', verificarTecnico, tecnicosController.cerrarSesionTecnico)
 // Ruta para listar técnicos con paginación
 router.get('/list', tecnicosController.listTecnicos);
 
+router.post("/refresh-token", tecnicosController.refreshToken);
+
 module.exports = router;
