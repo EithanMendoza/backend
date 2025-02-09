@@ -118,3 +118,13 @@ exports.obtenerSolicitudUsuario = async (req, res) => {
   }
 };
 
+// ✅ Obtener solicitudes pendientes con info de usuario y servicio
+exports.getSolicitudesPendientesTecnicos = async (req, res) => {
+  try {
+    const solicitudes = await solicitudesModel.getSolicitudesPendientesTecnicos();
+    res.status(200).json(solicitudes);
+  } catch (err) {
+    console.error('❌ Error al obtener las solicitudes pendientes para técnicos:', err);
+    res.status(500).json({ error: 'Error al obtener las solicitudes pendientes para técnicos', detalle: err.message });
+  }
+};

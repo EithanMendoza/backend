@@ -140,3 +140,52 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
   }
 };
 
+
+// ✅ Obtener solicitudes pendientes con información del usuario y servicio
+exports.getSolicitudesPendientesTecnicos = async () => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  try {
+    const solicitudes = await db.collection('solicitudes_servicio')
+      .aggregate([
+        { $match: { estado: 'pendiente' } }, // Filtrar solo pendientes
+        {
+          $lookup: {
+            from: 'usuarios', // Relacionar con la tabla de usuarios
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'usuario_info',
+          },
+        },
+        { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } }, // Desanidar el array
+        {
+          $lookup: {
+            from: 'tipos_servicio', // Relacionar con la tabla de tipos de servicio
+            localField: 'tipo_servicio_id',
+            foreignField: '_id',
+            as: 'servicio_info',
+          },
+        },
+        { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } }, // Desanidar el array
+        {
+          $project: {
+            _id: 1, // ID de la solicitud
+            userId: 1,
+            direccion: 1,
+            detalles: 1,
+            fecha: 1,
+            hora: 1,
+            marca_ac: 1,
+            tipo_ac: 1,
+            tipo_servicio: '$servicio_info.nombre_servicio', // Nombre del tipo de servicio
+          },
+        },
+      ])
+      .toArray();
+
+    return solicitudes;
+  } finally {
+    await client.close();
+  }
+};
