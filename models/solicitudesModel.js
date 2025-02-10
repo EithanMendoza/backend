@@ -190,15 +190,15 @@ exports.getSolicitudesPendientesTecnicos = async () => {
         },
         { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } }, // Desanidar el array
         {
-          $addFields: {
-            tipo_servicio_id_obj: { $toObjectId: '$tipo_servicio_id' }, // Convertir a ObjectId
-          },
-        },
-        {
           $lookup: {
             from: 'tipos_servicio', // Relacionar con la tabla de tipos de servicio
-            localField: 'tipo_servicio_id_obj',
-            foreignField: '_id',
+            let: { tipoServicioId: { $toString: "$tipo_servicio_id" } }, // Convertir el ObjectId a String
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } // Comparación correcta
+              }
+            ],
             as: 'servicio_info',
           },
         },
@@ -213,7 +213,7 @@ exports.getSolicitudesPendientesTecnicos = async () => {
             hora: 1,
             marca_ac: 1,
             tipo_ac: 1,
-            tipo_servicio: '$servicio_info.nombre_servicio', // Nombre del tipo de servicio
+            tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] } // Nombre del servicio
           },
         },
       ])
