@@ -63,7 +63,7 @@ exports.iniciarSesionTecnico = async (req, res) => {
     const sessionToken = jwt.sign(
       { tecnico_id: tecnico._id, email: tecnico.email }, 
       process.env.JWT_SECRET, 
-      { expiresIn: '1h' }
+      { expiresIn: '30d' }
     );
 
     const session = {
