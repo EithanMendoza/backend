@@ -6,13 +6,43 @@ const connectToDatabase = async () => {
   return client;
 };
 
-// ✅ Obtener todas las solicitudes pendientes (para técnicos) //modificacion
 exports.getSolicitudesPendientes = async () => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
 
   try {
-    const solicitudes = await db.collection('solicitudes_servicio').find({ estado: 'pendiente' }).toArray();
+    const solicitudes = await db.collection('solicitudes_servicio').aggregate([
+      {
+        $match: { estado: 'pendiente' } // Solo traer las pendientes
+      },
+      {
+        $lookup: {
+          from: 'tipos_servicio', // La colección donde están los nombres de servicio
+          localField: 'tipo_servicio_id',
+          foreignField: '_id',
+          as: 'tipo_servicio'
+        }
+      },
+      {
+        $unwind: '$tipo_servicio' // Desempaqueta el array del lookup
+      },
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          tipo_servicio_id: 1,
+          nombre_servicio: '$tipo_servicio.nombre_servicio', // ✅ Trae el nombre del servicio
+          marca_ac: 1,
+          tipo_ac: 1,
+          detalles: 1,
+          fecha: 1,
+          hora: 1,
+          direccion: 1,
+          estado: 1
+        }
+      }
+    ]).toArray();
+
     return solicitudes;
   } catch (error) {
     console.error("❌ Error al obtener solicitudes pendientes:", error);
@@ -21,6 +51,7 @@ exports.getSolicitudesPendientes = async () => {
     await client.close();
   }
 };
+
 
 // Aceptar una solicitud
 exports.aceptarSolicitud = async (solicitudId, tecnicoId, codigoInicial) => {
