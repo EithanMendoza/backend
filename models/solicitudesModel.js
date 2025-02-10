@@ -177,35 +177,33 @@ exports.getSolicitudesPendientesTecnicos = async () => {
   const db = client.db('AirTecs3');
 
   try {
+    const solicitudesSinLookup = await db.collection('solicitudes_servicio')
+      .find({ estado: 'pendiente' })
+      .toArray();
+
+    console.log("🔍 Solicitudes encontradas antes del lookup:", solicitudesSinLookup);
+
     const solicitudes = await db.collection('solicitudes_servicio')
       .aggregate([
         { $match: { estado: 'pendiente' } }, // Filtrar solo pendientes
         {
           $lookup: {
-            from: 'usuarios', // Relacionar con la tabla de usuarios
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'usuario_info',
-          },
-        },
-        { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } }, // Desanidar el array
-        {
-          $lookup: {
-            from: 'tipos_servicio', // Relacionar con la tabla de tipos de servicio
-            let: { tipoServicioId: { $toString: "$tipo_servicio_id" } }, // Convertir el ObjectId a String
+            from: 'tipos_servicio',
+            let: { tipoServicioId: { $toString: "$tipo_servicio_id" } },
             pipeline: [
               {
                 $match: {
-                  $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } // Comparación correcta
+                  $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] }
+                }
               }
             ],
             as: 'servicio_info',
           },
         },
-        { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } }, // Desanidar el array
+        { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
         {
           $project: {
-            _id: 1, // ID de la solicitud
+            _id: 1,
             userId: 1,
             direccion: 1,
             detalles: 1,
@@ -213,11 +211,13 @@ exports.getSolicitudesPendientesTecnicos = async () => {
             hora: 1,
             marca_ac: 1,
             tipo_ac: 1,
-            tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] } // Nombre del servicio
+            tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] }
           },
         },
       ])
       .toArray();
+
+    console.log("🔍 Solicitudes después del lookup:", solicitudes);
 
     return solicitudes;
   } finally {
