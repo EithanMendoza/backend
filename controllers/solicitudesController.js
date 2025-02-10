@@ -4,13 +4,14 @@ const solicitudesModel = require('../models/solicitudesModel.js');
 // Obtener solicitudes pendientes
 exports.getSolicitudesPendientes = async (req, res) => {
   try {
-    const solicitudes = await solicitudesModel.getSolicitudesPendientes();
+    const solicitudes = await solicitudesModel.getSolicitudesPendientesTecnicos();
     res.status(200).json(solicitudes);
   } catch (err) {
-    console.error('Error al obtener las solicitudes pendientes:', err);
-    res.status(500).json({ error: 'Error al obtener las solicitudes pendientes', detalle: err.message });
+    console.error('❌ Error al obtener las solicitudes pendientes para técnicos:', err);
+    res.status(500).json({ error: 'Error al obtener las solicitudes pendientes para técnicos', detalle: err.message });
   }
 };
+
 exports.aceptarSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
   const tecnicoId = req.tecnico ? req.tecnico.id : null;
