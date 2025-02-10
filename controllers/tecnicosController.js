@@ -41,57 +41,47 @@ exports.registrarTecnico = async (req, res) => {
   }
 };
 
-// **Iniciar sesión de técnico con Refresh Token**
+// **Iniciar sesión de técnico**
 exports.iniciarSesionTecnico = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
   }
 
   try {
     const tecnico = await tecnicosModel.findTecnicoByEmail(email);
     if (!tecnico) {
-      return res.status(404).json({ error: "Técnico no encontrado." });
+      return res.status(404).json({ error: 'Técnico no encontrado.' });
     }
 
     const match = await bcrypt.compare(password, tecnico.password);
     if (!match) {
-      return res.status(401).json({ error: "Contraseña incorrecta." });
+      return res.status(401).json({ error: 'Contraseña incorrecta.' });
     }
 
-    // 🔥 Generar el Access Token (Expira en 1 hora)
-    const accessToken = jwt.sign(
-      { tecnico_id: tecnico._id, email: tecnico.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" } // Access Token dura 1 hora
+    const sessionToken = jwt.sign(
+      { tecnico_id: tecnico._id, email: tecnico.email }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '1h' }
     );
 
-    // 🔥 Generar el Refresh Token (Expira en 7 días)
-    const refreshToken = jwt.sign(
-      { tecnico_id: tecnico._id },
-      process.env.REFRESH_SECRET,
-      { expiresIn: "7d" } // Refresh Token dura 7 días
-    );
-
-    // Guardar el Refresh Token en la base de datos
     const session = {
       tecnico_id: tecnico._id,
-      session_token: refreshToken, // Guardamos el Refresh Token
+      session_token: sessionToken,
       tiempo_inicio: new Date(),
     };
 
     await tecnicosModel.registerSession(session);
 
     res.status(200).json({
-      mensaje: "Inicio de sesión exitoso",
-      accessToken,
-      refreshToken,
+      mensaje: 'Inicio de sesión exitoso',
+      session_token: sessionToken,
       tecnico: { id: tecnico._id, nombre_usuario: tecnico.nombre_usuario, email: tecnico.email },
     });
   } catch (error) {
-    console.error("Error al iniciar sesión:", error);
-    res.status(500).json({ error: "Error al iniciar sesión.", detalle: error.message });
+    console.error('Error al iniciar sesión:', error);
+    res.status(500).json({ error: 'Error al iniciar sesión.', detalle: error.message });
   }
 };
 
@@ -132,40 +122,3 @@ exports.listTecnicos = async (req, res) => {
   }
 };
 
-// **Refrescar Access Token**
-exports.refreshToken = async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      return res.status(400).json({ error: "No se proporcionó un refresh token." });
-    }
-
-    const client = await connectToDatabase();
-    const db = client.db("AirTecs3");
-
-    // Buscar el refresh token en la base de datos
-    const session = await db.collection("sesiones_tecnico").findOne({ session_token: refreshToken });
-
-    if (!session) {
-      return res.status(403).json({ error: "Refresh token inválido o expirado." });
-    }
-
-    jwt.verify(refreshToken, process.env.REFRESH_SECRET, async (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ error: "Refresh token no válido." });
-      }
-
-      // 🔥 Generar un nuevo Access Token
-      const newAccessToken = jwt.sign(
-        { tecnico_id: decoded.tecnico_id },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" } // Renovamos el access token por 1 hora más
-      );
-
-      res.status(200).json({ accessToken: newAccessToken });
-    });
-  } catch (err) {
-    console.error("Error al refrescar el token:", err);
-    res.status(500).json({ error: "Error al refrescar el token." });
-  }
-};
