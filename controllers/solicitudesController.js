@@ -129,3 +129,20 @@ exports.getSolicitudesPendientesTecnicos = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener las solicitudes pendientes para técnicos', detalle: err.message });
   }
 };
+
+exports.getSolicitudById = async (req, res) => {
+  const { id } = req.params; // ✅ Obtener el ID de la solicitud desde la URL
+
+  try {
+    const solicitud = await solicitudesModel.getSolicitudById(id);
+    
+    if (!solicitud) {
+      return res.status(404).json({ error: "Solicitud no encontrada" });
+    }
+
+    res.status(200).json(solicitud);
+  } catch (err) {
+    console.error("❌ Error al obtener la solicitud:", err);
+    res.status(500).json({ error: "Error al obtener la solicitud", detalle: err.message });
+  }
+};

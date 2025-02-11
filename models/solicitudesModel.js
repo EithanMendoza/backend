@@ -233,3 +233,61 @@ exports.getSolicitudesPendientesTecnicos = async () => {
 };
 
 
+exports.getSolicitudById = async (solicitudId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  try {
+    const solicitud = await db.collection('solicitudes_servicio')
+      .aggregate([
+        { $match: { _id: new ObjectId(solicitudId) } }, // ✅ Filtrar por ID específico
+
+        // 🔹 Lookup para obtener información del servicio
+        {
+          $lookup: {
+            from: 'tipos_servicio',
+            let: { tipoServicioId: { $toString: "$tipo_servicio_id" } },
+            pipeline: [
+              { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } }
+            ],
+            as: 'servicio_info',
+          },
+        },
+        { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
+
+        // 🔹 Lookup para obtener información del usuario
+        {
+          $lookup: {
+            from: 'usuarios',
+            let: { usuarioId: { $toObjectId: "$userId" } }, // ✅ Convertimos userId a ObjectId
+            pipeline: [
+              { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
+            ],
+            as: 'usuario_info',
+          },
+        },
+        { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } },
+
+        {
+          $project: {
+            _id: 1,
+            userId: 1,
+            nombre_usuario: "$usuario_info.nombre_usuario", // ✅ Nombre del usuario
+            direccion: 1,
+            detalles: 1,
+            fecha: 1,
+            hora: 1,
+            marca_ac: 1,
+            tipo_ac: 1,
+            tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] }
+          },
+        },
+      ])
+      .toArray();
+
+    return solicitud.length > 0 ? solicitud[0] : null; // ✅ Retornar solo un objeto, no un array
+  } finally {
+    await client.close();
+  }
+};
+
