@@ -177,34 +177,39 @@ exports.getSolicitudesPendientesTecnicos = async () => {
   const db = client.db('AirTecs3');
 
   try {
-    const solicitudesSinLookup = await db.collection('solicitudes_servicio')
-      .find({ estado: 'pendiente' })
-      .toArray();
-
-    console.log("🔍 Solicitudes encontradas antes del lookup:", solicitudesSinLookup);
-
     const solicitudes = await db.collection('solicitudes_servicio')
       .aggregate([
         { $match: { estado: 'pendiente' } }, // Filtrar solo pendientes
+
+        // 🔹 Lookup para obtener información del servicio
         {
           $lookup: {
             from: 'tipos_servicio',
             let: { tipoServicioId: { $toString: "$tipo_servicio_id" } },
             pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] }
-                }
-              }
+              { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } }
             ],
             as: 'servicio_info',
           },
         },
         { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
+
+        // 🔹 Lookup para obtener información del usuario
+        {
+          $lookup: {
+            from: 'usuarios', // La colección donde están los usuarios
+            localField: 'userId', // Relacionamos con el campo userId de la solicitud
+            foreignField: '_id', // Relacionamos con el _id de la colección usuarios
+            as: 'usuario_info',
+          },
+        },
+        { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } },
+
         {
           $project: {
             _id: 1,
             userId: 1,
+            "nombre_usuario": "$usuario_info.nombre", // 🔹 Obtenemos el nombre del usuario
             direccion: 1,
             detalles: 1,
             fecha: 1,
@@ -217,10 +222,11 @@ exports.getSolicitudesPendientesTecnicos = async () => {
       ])
       .toArray();
 
-    console.log("🔍 Solicitudes después del lookup:", solicitudes);
-
+    console.log("🔍 Solicitudes con info de usuario:", solicitudes);
     return solicitudes;
+
   } finally {
     await client.close();
   }
 };
+
