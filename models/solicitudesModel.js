@@ -194,12 +194,14 @@ exports.getSolicitudesPendientesTecnicos = async () => {
         },
         { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
 
-        // 🔹 Lookup para obtener información del usuario
+        // 🔹 Lookup para obtener información del usuario (con conversión a ObjectId)
         {
           $lookup: {
             from: 'usuarios', // La colección donde están los usuarios
-            localField: 'userId', // Relacionamos con el campo userId de la solicitud
-            foreignField: '_id', // Relacionamos con el _id de la colección usuarios
+            let: { usuarioId: { $toObjectId: "$userId" } }, // 🔹 Convertimos userId a ObjectId
+            pipeline: [
+              { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
+            ],
             as: 'usuario_info',
           },
         },
@@ -209,7 +211,7 @@ exports.getSolicitudesPendientesTecnicos = async () => {
           $project: {
             _id: 1,
             userId: 1,
-            "nombre_usuario": "$usuario_info.nombre", // 🔹 Obtenemos el nombre del usuario
+            nombre_usuario: "$usuario_info.nombre_usuario", // 🔹 Ahora sí obtenemos el nombre
             direccion: 1,
             detalles: 1,
             fecha: 1,
@@ -229,4 +231,5 @@ exports.getSolicitudesPendientesTecnicos = async () => {
     await client.close();
   }
 };
+
 
