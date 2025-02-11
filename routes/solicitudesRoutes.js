@@ -5,5 +5,6 @@ const verificarUsuario = require('../middleware/authMiddleware'); // Middleware 
 
 // Obtener la solicitud activa del usuario autenticado
 router.get("/mi-solicitud", verificarUsuario, solicitudesController.obtenerSolicitudUsuario);
+router.get('/solicitud/:id', solicitudesController.getSolicitudById);
 
 module.exports = router;
