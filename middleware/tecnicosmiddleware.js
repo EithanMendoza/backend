@@ -34,6 +34,10 @@ const verificarTecnico = async (req, res, next) => {
     }
 
     const tecnicoId = decoded.tecnico_id;
+if (!ObjectId.isValid(tecnicoId)) {
+  return res.status(400).json({ error: 'ID de técnico inválido.' });
+}
+
 
     // Conectar a MongoDB y verificar técnico
     const client = new MongoClient(process.env.MONGO_URI);
@@ -42,12 +46,12 @@ const verificarTecnico = async (req, res, next) => {
     const tecnicosCollection = db.collection('tecnicos_servicio');
 
     const tecnico = await tecnicosCollection.findOne({ _id: new ObjectId(tecnicoId) });
-
+    console.log("Técnico encontrado:", tecnico);
     if (!tecnico) {
-      console.warn("⚠️ Técnico no encontrado:", tecnicoId);
-      await client.close();
-      return res.status(404).json({ error: 'Técnico no encontrado.' });
-    }
+    console.warn("⚠️ Técnico no encontrado:", tecnicoId);
+    await client.close();
+    return res.status(404).json({ error: 'Técnico no encontrado.' });
+  }
 
     req.tecnico = { id: tecnicoId };
     console.log("✅ Técnico autenticado correctamente:", tecnicoId);
