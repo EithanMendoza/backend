@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const tecnicosController = require('../controllers/tecnicosController');
-const verificarTecnico = require('../middleware/authMiddleware'); // Middleware para verificar usuario autenticado
+const verificarTecnico = require('../middleware/tecnicosmiddleware'); 
 
 // Ruta para listar técnicos con paginación
 router.get('/list', tecnicosController.listTecnicos);
