@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const tecnicosModel = require('../models/autenticacionTecnicos');
+const { MongoClient, ObjectId } = require('mongodb'); // Asegúrate de que esta línea esté presente
+
 
 const saltRounds = 10;
 
