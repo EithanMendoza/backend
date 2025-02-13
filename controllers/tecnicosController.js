@@ -5,22 +5,38 @@ const tecnicosModel = require('../models/autenticacionTecnicos');
 const saltRounds = 10;
 
 // **Obtener Perfil del Técnico Autenticado**
+// Controlador para obtener el perfil del técnico
 exports.obtenerPerfilTecnico = async (req, res) => {
   try {
-    const tecnicoId = req.user.tecnico_id; // ID del usuario extraído del token
-
-    const tecnico = await tecnicosModel.findTecnicoById(tecnicoId);
-
-    if (!tecnico) {
-      return res.status(404).json({ error: "Técnico no encontrado" });
+    const tecnicoId = req.tecnico.id;  // Debería ser el `id` que viene del middleware
+    
+    // Verifica que el ID del técnico esté presente
+    if (!tecnicoId) {
+      return res.status(400).json({ error: 'ID de técnico no encontrado en la sesión.' });
     }
 
-    res.status(200).json(tecnico);
+    const client = new MongoClient(process.env.MONGO_URI);
+    await client.connect();
+    const db = client.db('AirTecs3');
+    const tecnicosCollection = db.collection('tecnicos_servicio');
+    
+    // Busca el perfil del técnico con el `tecnicoId`
+    const tecnico = await tecnicosCollection.findOne({ _id: new ObjectId(tecnicoId) });
+
+    if (!tecnico) {
+      console.warn("⚠️ Técnico no encontrado:", tecnicoId);
+      await client.close();
+      return res.status(404).json({ error: 'Técnico no encontrado.' });
+    }
+
+    await client.close();
+    return res.status(200).json(tecnico);
   } catch (error) {
-    console.error("Error al obtener el perfil del técnico:", error);
-    res.status(500).json({ error: "Error interno al obtener el perfil.", detalle: error.message });
+    console.error("❌ Error al obtener el perfil:", error);
+    return res.status(500).json({ error: 'Error interno al obtener el perfil.', detalle: error.message });
   }
 };
+
 
 // **Registrar Técnico**
 exports.registrarTecnico = async (req, res) => {
