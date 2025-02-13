@@ -13,8 +13,8 @@ const verificarTecnico = async (req, res, next) => {
     return res.status(401).json({ error: 'Token no válido o ausente.' });
   }
 
-  // 🔥 Convertir `bearer` a `Bearer` para evitar errores de capitalización
   const tokenParts = authHeader.split(' ');
+
   if (tokenParts.length !== 2 || tokenParts[0].toLowerCase() !== "bearer") {
     console.warn("⚠️ Formato de token incorrecto.");
     return res.status(401).json({ error: 'Formato de token incorrecto. Usa "Bearer <token>"' });
@@ -25,8 +25,9 @@ const verificarTecnico = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("✅ Token decodificado:", decoded);
+    console.log("✅ Token decodificado:", decoded); // Asegúrate de ver el contenido del token
 
+    // Verifica si el token tiene la propiedad tecnico_id
     if (!decoded || !decoded.tecnico_id) {
       console.warn("⚠️ Token inválido o corrupto.");
       return res.status(401).json({ error: 'Token inválido o corrupto.' });
