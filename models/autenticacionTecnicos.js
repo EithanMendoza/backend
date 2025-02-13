@@ -9,6 +9,20 @@ const connectToDatabase = async () => {
   return client;
 };
 
+// Obtener técnico por ID
+exports.findTecnicoById = async (tecnicoId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  const tecnico = await db.collection('tecnicos_servicio').findOne(
+    { _id: new ObjectId(tecnicoId) },
+    { projection: { nombre_usuario: 1, email: 1, telefono: 1, especialidad: 1, password: 1 } }
+  );
+
+  await client.close();
+  return tecnico;
+};
+
 // Registrar técnico
 exports.registerTecnico = async (tecnico) => {
   const client = await connectToDatabase();

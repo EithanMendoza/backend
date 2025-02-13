@@ -4,6 +4,24 @@ const tecnicosModel = require('../models/autenticacionTecnicos');
 
 const saltRounds = 10;
 
+// **Obtener Perfil del Técnico Autenticado**
+exports.obtenerPerfilTecnico = async (req, res) => {
+  try {
+    const tecnicoId = req.user.tecnico_id; // ID del usuario extraído del token
+
+    const tecnico = await tecnicosModel.findTecnicoById(tecnicoId);
+
+    if (!tecnico) {
+      return res.status(404).json({ error: "Técnico no encontrado" });
+    }
+
+    res.status(200).json(tecnico);
+  } catch (error) {
+    console.error("Error al obtener el perfil del técnico:", error);
+    res.status(500).json({ error: "Error interno al obtener el perfil.", detalle: error.message });
+  }
+};
+
 // **Registrar Técnico**
 exports.registrarTecnico = async (req, res) => {
   const { nombre_usuario, email, password, especialidad, telefono } = req.body;
@@ -106,6 +124,7 @@ exports.cerrarSesionTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error al cerrar sesión.', detalle: error.message });
   }
 };
+
 exports.listTecnicos = async (req, res) => {
   try {
     const client = new MongoClient(process.env.MONGO_URI);
@@ -121,4 +140,6 @@ exports.listTecnicos = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la lista de técnicos' });
   }
 };
+
+
 
