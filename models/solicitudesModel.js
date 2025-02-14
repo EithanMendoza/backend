@@ -98,10 +98,10 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
       },
       {
         $lookup: {
-          from: 'servicios', // Colección de servicios
-          localField: 'tipo_servicio', // Campo en solicitudes_servicio
-          foreignField: 'tipo_servicio', // Campo relacionado en servicios
-          as: 'servicio_info'
+          from: 'tipos_servicio', // La colección donde están los nombres de servicio
+          localField: 'tipo_servicio_id',
+          foreignField: '_id',
+          as: 'tipo_servicio'
         }
       },
       {
@@ -120,7 +120,7 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
           fecha: 1,
           hora: 1,
           codigo: 1,
-          'servicio_info.nombre_servicio': { $arrayElemAt: ['$servicio_info.nombre_servicio', 0] }, // Extraer el primer valor del array
+          nombre_servicio: '$tipo_servicio.nombre_servicio', // ✅ Trae el nombre del servicio
           'usuario_info.nombre_usuario': { $arrayElemAt: ['$usuario_info.nombre_usuario', 0] }, // Extraer el primer valor del array
         }
       }
