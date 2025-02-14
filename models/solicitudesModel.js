@@ -81,7 +81,7 @@ exports.cancelarSolicitud = async (solicitudId, tecnicoId) => {
   return result.modifiedCount > 0;
 };
 
-// Obtener solicitudes aceptadas por un técnico
+// Obtener solicitudes aceptadas por un técnico con lookup para nombre del servicio y usuario
 exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
   const client = await connectToDatabase();
   const db = client.db('AirTecs3');
@@ -89,19 +89,51 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
   try {
     console.log("🛠 Buscando solicitudes aceptadas para el técnico:", tecnicoId);
 
-    // Recuperamos los datos de las solicitudes aceptadas con los nuevos campos
-    const solicitudes = await db.collection('solicitudes_servicio').find({
-      tecnico_id: new ObjectId(tecnicoId),
-      estado: "aceptada"
-    }).toArray();
+    const solicitudes = await db.collection('solicitudes_servicio').aggregate([
+      {
+        $match: {
+          tecnico_id: new ObjectId(tecnicoId),
+          estado: "aceptada"
+        }
+      },
+      {
+        $lookup: {
+          from: 'servicios', // Colección de servicios
+          localField: 'tipo_servicio', // Campo en solicitudes_servicio
+          foreignField: 'tipo_servicio', // Campo relacionado en servicios
+          as: 'servicio_info'
+        }
+      },
+      {
+        $lookup: {
+          from: 'usuarios', // Colección de usuarios
+          localField: 'user_id', // Campo en solicitudes_servicio
+          foreignField: '_id', // Campo relacionado en usuarios
+          as: 'usuario_info'
+        }
+      },
+      {
+        $project: {
+          tipo_servicio: 1,
+          detalles: 1,
+          direccion: 1,
+          fecha: 1,
+          hora: 1,
+          codigo: 1,
+          'servicio_info.nombre_servicio': { $arrayElemAt: ['$servicio_info.nombre_servicio', 0] }, // Extraer el primer valor del array
+          'usuario_info.nombre_usuario': { $arrayElemAt: ['$usuario_info.nombre_usuario', 0] }, // Extraer el primer valor del array
+        }
+      }
+    ]).toArray();
 
-    console.log("📋 Solicitudes encontradas en MongoDB:", JSON.stringify(solicitudes, null, 2));
+    console.log("📋 Solicitudes encontradas con lookup:", JSON.stringify(solicitudes, null, 2));
 
     return solicitudes;
   } finally {
     await client.close();
   }
 };
+
 // 📌 Obtener la solicitud en curso de un usuario
 exports.getSolicitudEnCurso = async (userId) => {
   const client = await connectToDatabase();

@@ -64,7 +64,7 @@ exports.cancelarSolicitud = async (req, res) => {
   }
 };
 
-// Obtener solicitudes aceptadas
+// Obtener solicitudes aceptadas con lookup para el nombre del servicio y nombre del usuario
 exports.getSolicitudesAceptadas = async (req, res) => {
   const tecnicoId = req.tecnico ? req.tecnico.id : null;
 
@@ -73,28 +73,17 @@ exports.getSolicitudesAceptadas = async (req, res) => {
   }
 
   try {
-    // Obtener las solicitudes aceptadas con los parámetros adicionales (codigo, marca_ac)
+    // Usamos el modelo para obtener las solicitudes aceptadas con lookup
     const solicitudes = await solicitudesModel.getSolicitudesAceptadasPorTecnico(tecnicoId);
 
-    // Filtramos los campos adicionales
-    const solicitudesConParametros = solicitudes.map(solicitud => ({
-      _id: solicitud._id,
-      tipo_servicio: solicitud.tipo_servicio,
-      detalles: solicitud.detalles,
-      direccion: solicitud.direccion,
-      fecha: solicitud.fecha,
-      hora: solicitud.hora,
-      codigo: solicitud.codigo,        // Nuevo campo
-      marca_ac: solicitud.marca_ac,    // Nuevo campo
-      nombre_usuario: solicitud.nombre_usuario,
-    }));
-
-    res.status(200).json(solicitudesConParametros);
+    // Devuelvo las solicitudes con los datos agregados mediante el lookup
+    res.status(200).json(solicitudes);
   } catch (err) {
     console.error('Error al obtener las solicitudes aceptadas:', err);
     res.status(500).json({ error: 'Error al obtener las solicitudes aceptadas.', detalle: err.message });
   }
 };
+
 
 // 📌 Obtener la solicitud en curso del usuario autenticado
 exports.getSolicitudUsuario = async (req, res) => {
