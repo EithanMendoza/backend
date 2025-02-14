@@ -182,6 +182,19 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
         }
       },
       { $unwind: { path: "$detalle_servicio", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'usuarios', // La colección donde están los usuarios
+          let: { usuarioId: { $toObjectId: "$userId" } }, // 🔹 Convertimos userId a ObjectId
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
+          ],
+          as: 'usuario_info',
+        },
+      },
+      { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } },
+
       {
         $project: {
           _id: 1,
@@ -196,7 +209,8 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           tecnico_id: 1,
           created_at: 1,
           expires_at: 1,
-          nombre_servicio: { $ifNull: ["$detalle_servicio.nombre_servicio", "No especificado"] }
+          nombre_servicio: { $ifNull: ["$detalle_servicio.nombre_servicio", "No especificado"] },
+          nombre_usuario: "$usuario_info.nombre_usuario", // 🔹 Ahora sí obtenemos el nombre
         }
       }
     ]).toArray(); // Se coloca correctamente aquí
