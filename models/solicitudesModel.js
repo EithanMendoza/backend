@@ -107,14 +107,18 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
         },
       },
       { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
+      // 🔹 Lookup para obtener información del usuario (con conversión a ObjectId)
       {
         $lookup: {
-          from: 'usuarios', // Colección de usuarios
-          localField: 'user_id', // Campo en solicitudes_servicio
-          foreignField: '_id', // Campo relacionado en usuarios
-          as: 'usuario_info'
-        }
+          from: 'usuarios', // La colección donde están los usuarios
+          let: { usuarioId: { $toObjectId: "$userId" } }, // 🔹 Convertimos userId a ObjectId
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
+          ],
+          as: 'usuario_info',
+        },
       },
+      { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } },
       {
         $project: {
           tipo_servicio: 1,
