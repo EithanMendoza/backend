@@ -125,7 +125,7 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
           codigo: 1,
           marca_ac: 1,    // Nuevo campo
           tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] },
-          'usuario_info.nombre_usuario': { $arrayElemAt: ['$usuario_info.nombre_usuario', 0] }, // Extraer el primer valor del array
+          nombre_usuario: "$usuario_info.nombre_usuario", // 🔹 Ahora sí obtenemos el nombre
         }
       }
     ]).toArray();
