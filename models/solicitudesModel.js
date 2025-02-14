@@ -98,12 +98,15 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
       },
       {
         $lookup: {
-          from: 'tipos_servicio', // La colección donde están los nombres de servicio
-          localField: 'tipo_servicio_id',
-          foreignField: '_id',
-          as: 'tipo_servicio'
-        }
+          from: 'tipos_servicio',
+          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } }
+          ],
+          as: 'servicio_info',
+        },
       },
+      { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'usuarios', // Colección de usuarios
@@ -120,7 +123,7 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
           fecha: 1,
           hora: 1,
           codigo: 1,
-          nombre_servicio: '$tipo_servicio.nombre_servicio', // ✅ Trae el nombre del servicio
+          tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] },
           'usuario_info.nombre_usuario': { $arrayElemAt: ['$usuario_info.nombre_usuario', 0] }, // Extraer el primer valor del array
         }
       }
