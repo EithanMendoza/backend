@@ -96,7 +96,7 @@ exports.actualizarEstadoSolicitud = async (req, res) => {
       // ✅ Buscar la solicitud en la colección de progreso_servicio
       const progresoActual = await db.collection('progreso_servicio').findOne({ solicitud_id: solicitudObjectId });
 
-      let estadoActual = progresoActual ? progresoActual.estado_solicitud : 'Pendiente';
+      let estadoActual = progresoActual ? progresoActual.estado_solicitud : 'pendiente';
 
       // ✅ Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
       const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);
