@@ -44,3 +44,28 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
     res.status(500).json({ error: "Error interno al obtener solicitudes finalizadas.", detalle: err.message });
   }
 };
+
+// Controller: obtener estado de la solicitud
+exports.getEstadoSolicitud = async (req, res) => {
+  const { solicitudId } = req.params;
+
+  try {
+    const client = await connectToDatabase();
+    const db = client.db('AirTecs3');
+    const progresoCollection = db.collection('progreso_servicio');
+
+    // Buscar en la colección 'progreso_servicio' el estado de la solicitud
+    const progreso = await progresoCollection.findOne({ solicitud_id: solicitudId });
+
+    if (progreso) {
+      // Si existe el progreso, devolver el estado
+      return res.status(200).json(progreso);
+    } else {
+      // Si no existe, significa que la solicitud aún no ha sido actualizada, así que el primer estado es "en camino"
+      return res.status(200).json({ estado_solicitud: 'en camino' });
+    }
+  } catch (err) {
+    console.error('Error al obtener el estado de la solicitud:', err);
+    return res.status(500).json({ error: 'Error al obtener el estado de la solicitud.', detalle: err.message });
+  }
+};
