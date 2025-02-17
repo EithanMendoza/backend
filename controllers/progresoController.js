@@ -12,6 +12,8 @@ const esObjectIdValido = (id) => {
   return ObjectId.isValid(id) && (new ObjectId(id)).toString() === id;
 };
 
+// Definir los estados en orden
+const ESTADOS_SERVICIO = ['Pendiente', 'En camino', 'En lugar', 'En proceso', 'Finalizado'];
 
 // Obtener el historial de progreso de una solicitud específica
 exports.obtenerProgresoServicio = async (req, res) => {
@@ -73,5 +75,53 @@ exports.getEstadoSolicitud = async (req, res) => {
   } catch (err) {
     console.error('Error al obtener el estado de la solicitud:', err);
     return res.status(500).json({ error: 'Error al obtener el estado de la solicitud.', detalle: err.message });
+  }
+};
+
+// ✅ Función para actualizar el estado de una solicitud
+exports.actualizarEstadoSolicitud = async (req, res) => {
+  const { solicitudId } = req.params;
+  const { estado, detalles } = req.body;
+
+  if (!estado) {
+      return res.status(400).json({ error: "El estado es requerido." });
+  }
+
+  try {
+      const client = await connectToDatabase();
+      const db = client.db('AirTecs3');
+
+      const solicitudObjectId = new ObjectId(solicitudId);
+
+      // ✅ Buscar la solicitud en la colección de progreso_servicio
+      const progresoActual = await db.collection('progreso_servicio').findOne({ solicitud_id: solicitudObjectId });
+
+      let estadoActual = progresoActual ? progresoActual.estado_solicitud : 'Pendiente';
+
+      // ✅ Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
+      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);
+      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estado);
+
+      if (indexNuevoEstado !== indexEstadoActual + 1) {
+          return res.status(400).json({ error: "El estado no sigue el orden requerido." });
+      }
+
+      // ✅ Actualizar o insertar el estado en progreso_servicio
+      await db.collection('progreso_servicio').updateOne(
+          { solicitud_id: solicitudObjectId },
+          {
+              $set: {
+                  estado_solicitud: estado,
+                  detalles: detalles || "",
+                  fecha_actualizacion: new Date()
+              }
+          },
+          { upsert: true }
+      );
+
+      res.status(200).json({ mensaje: `Estado actualizado a '${estado}' correctamente.` });
+  } catch (error) {
+      console.error("❌ Error al actualizar el estado de la solicitud:", error);
+      res.status(500).json({ error: "Error interno al actualizar el estado de la solicitud.", detalle: error.message });
   }
 };

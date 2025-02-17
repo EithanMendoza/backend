@@ -8,4 +8,7 @@ router.get("/solicitudes-finalizadas", progresoController.obtenerSolicitudesFina
 // Ruta para obtener el estado de la solicitud
 router.get('/:solicitudId', verificarTecnico, progresoController.getEstadoSolicitud);
 
+// ✅ Ruta para actualizar el estado de una solicitud
+router.post('/actualizar-estado/:solicitudId', progresoController.actualizarEstadoSolicitud);
+
 module.exports = router;
