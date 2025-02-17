@@ -1,5 +1,11 @@
 const progresoModel = require('../models/progresoModel');
-const { ObjectId } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
+
+const connectToDatabase = async () => {
+  const client = new MongoClient(process.env.MONGO_URI);
+  await client.connect();
+  return client;
+};
 
 // ✅ Función para validar si un ID es válido en MongoDB
 const esObjectIdValido = (id) => {
