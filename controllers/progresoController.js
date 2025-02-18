@@ -36,7 +36,7 @@ exports.obtenerProgresoServicio = async (req, res) => {
     res.status(500).json({ error: "Error al obtener el historial de progreso.", detalle: err.message });
   }
 };
-//progresoController fake 
+
 // ✅ Obtener todas las solicitudes en estado "finalizado" desde `progreso_servicio`
 exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
   try {
@@ -98,24 +98,23 @@ exports.actualizarEstadoSolicitud = async (req, res) => {
       let estadoActual = progresoActual ? progresoActual.estado_solicitud.trim().toLowerCase() : 'pendiente';
       let estadoNuevo = estado.trim().toLowerCase();  // 🔥 Convertir a minúsculas para evitar errores
 
+      // ✅ Obtener los índices ANTES de imprimirlos
+      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);  
+      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estadoNuevo);
+
       console.log(`🟢 Estado actual en BD: '${estadoActual}'`);
-console.log(`🔵 Estado recibido en la solicitud: '${estado}'`);
-console.log(`📌 Comparando índice en ESTADOS_SERVICIO: ${indexEstadoActual} ➡ ${indexNuevoEstado}`);
+      console.log(`🔵 Estado recibido en la solicitud: '${estadoNuevo}'`);
+      console.log(`📌 Comparando índice en ESTADOS_SERVICIO: ${indexEstadoActual} ➡ ${indexNuevoEstado}`);
 
+      // ✅ Validar que ambos índices existen en la lista de estados
+      if (indexEstadoActual === -1 || indexNuevoEstado === -1) {
+          return res.status(400).json({ error: "El estado proporcionado no es válido." });
+      }
 
-     const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);  // 🔥 Obtener primero el índice actual
-const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estado);        // Luego obtener el índice del nuevo estado
-
-// ✅ Validar que ambos índices existen en la lista de estados
-if (indexEstadoActual === -1 || indexNuevoEstado === -1) {
-    return res.status(400).json({ error: "El estado proporcionado no es válido." });
-}
-
-// ✅ Verificar que el estado sigue la secuencia correcta
-if (indexNuevoEstado !== indexEstadoActual + 1) {
-    return res.status(400).json({ error: "El estado no sigue el orden requerido." });
-}
-
+      // ✅ Verificar que el estado sigue la secuencia correcta
+      if (indexNuevoEstado !== indexEstadoActual + 1) {
+          return res.status(400).json({ error: "El estado no sigue el orden requerido." });
+      }
 
       // 🔥 Actualizar el estado en la base de datos
       await db.collection('progreso_servicio').updateOne(
