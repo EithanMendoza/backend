@@ -54,6 +54,7 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
 };
 
 // Controller: obtener estado de la solicitud
+// Controller: obtener estado de la solicitud
 exports.getEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
 
@@ -62,18 +63,21 @@ exports.getEstadoSolicitud = async (req, res) => {
     const db = client.db('AirTecs3');
     const progresoCollection = db.collection('progreso_servicio');
 
-    // Buscar en la colección 'progreso_servicio' el estado de la solicitud
-    const progreso = await progresoCollection.findOne({ solicitud_id: solicitudId });
+    // ✅ Convertir el ID a ObjectId
+    const solicitudObjectId = new ObjectId(solicitudId);
+
+    // 🔍 Buscar en la colección 'progreso_servicio' el estado de la solicitud
+    const progreso = await progresoCollection.findOne({ solicitud_id: solicitudObjectId });
 
     if (progreso) {
-      // Si existe el progreso, devolver el estado
-      return res.status(200).json(progreso);
+      console.log(`🟢 Estado encontrado en BD: ${progreso.estado_solicitud}`);
+      return res.status(200).json({ estado_solicitud: progreso.estado_solicitud });
     } else {
-      // Si no existe, significa que la solicitud aún no ha sido actualizada, así que el primer estado es "en camino"
+      console.log("🔴 No se encontró el progreso, devolviendo 'pendiente'");
       return res.status(200).json({ estado_solicitud: 'pendiente' });
     }
   } catch (err) {
-    console.error('Error al obtener el estado de la solicitud:', err);
+    console.error('❌ Error al obtener el estado de la solicitud:', err);
     return res.status(500).json({ error: 'Error al obtener el estado de la solicitud.', detalle: err.message });
   }
 };
