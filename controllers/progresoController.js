@@ -13,7 +13,7 @@ const esObjectIdValido = (id) => {
 };
 
 // Definir los estados en orden
-const ESTADOS_SERVICIO = ['Pendiente', 'en camino', 'en lugar', 'en proceso', 'finalizado'];
+const ESTADOS_SERVICIO = ['pendiente', 'en camino', 'en lugar', 'en proceso', 'finalizado'];
 
 // Obtener el historial de progreso de una solicitud específica
 exports.obtenerProgresoServicio = async (req, res) => {
