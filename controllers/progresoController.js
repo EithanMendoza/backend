@@ -98,8 +98,10 @@ exports.actualizarEstadoSolicitud = async (req, res) => {
       let estadoActual = progresoActual ? progresoActual.estado_solicitud.trim().toLowerCase() : 'pendiente';
       let estadoNuevo = estado.trim().toLowerCase();  // 🔥 Convertir a minúsculas para evitar errores
 
-      console.log(`🟢 Estado actual en la BD: ${estadoActual}`);
-      console.log(`🔵 Estado que se intenta actualizar: ${estadoNuevo}`);
+      console.log(`🟢 Estado actual en BD: '${estadoActual}'`);
+console.log(`🔵 Estado recibido en la solicitud: '${estado}'`);
+console.log(`📌 Comparando índice en ESTADOS_SERVICIO: ${indexEstadoActual} ➡ ${indexNuevoEstado}`);
+
 
       // 🔥 Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
       const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);
