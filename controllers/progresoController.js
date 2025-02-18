@@ -63,6 +63,12 @@ exports.getEstadoSolicitud = async (req, res) => {
     const db = client.db('AirTecs3');
     const progresoCollection = db.collection('progreso_servicio');
 
+    // ✅ Verificar si el ID es válido antes de convertirlo
+    if (!ObjectId.isValid(solicitudId)) {
+      console.log(`❌ ID inválido recibido: ${solicitudId}`);
+      return res.status(400).json({ error: "El ID de la solicitud no es válido." });
+    }
+
     // ✅ Convertir el ID a ObjectId
     const solicitudObjectId = new ObjectId(solicitudId);
 
