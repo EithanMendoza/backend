@@ -103,16 +103,19 @@ console.log(`🔵 Estado recibido en la solicitud: '${estado}'`);
 console.log(`📌 Comparando índice en ESTADOS_SERVICIO: ${indexEstadoActual} ➡ ${indexNuevoEstado}`);
 
 
-      // 🔥 Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
-      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);  // 🔥 Definirlo primero
-      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estado);        // Luego definir el nuevo estado
+     const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);  // 🔥 Obtener primero el índice actual
+const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estado);        // Luego obtener el índice del nuevo estado
 
+// ✅ Validar que ambos índices existen en la lista de estados
+if (indexEstadoActual === -1 || indexNuevoEstado === -1) {
+    return res.status(400).json({ error: "El estado proporcionado no es válido." });
+}
 
-      console.log(`📌 Índice actual: ${indexEstadoActual}, Índice nuevo: ${indexNuevoEstado}`);
+// ✅ Verificar que el estado sigue la secuencia correcta
+if (indexNuevoEstado !== indexEstadoActual + 1) {
+    return res.status(400).json({ error: "El estado no sigue el orden requerido." });
+}
 
-      if (indexNuevoEstado !== indexEstadoActual + 1) {
-          return res.status(400).json({ error: "El estado no sigue el orden requerido." });
-      }
 
       // 🔥 Actualizar el estado en la base de datos
       await db.collection('progreso_servicio').updateOne(
