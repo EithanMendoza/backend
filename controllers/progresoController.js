@@ -57,7 +57,7 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
 exports.getEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
 
-  console.log(`📌 ID recibido en el backend: ${solicitudId}`); // 🔥 Verificar qué ID está llegando
+  console.log(`📌 ID recibido en el backend: '${solicitudId}'`);
 
   try {
     const client = await connectToDatabase();
@@ -66,7 +66,7 @@ exports.getEstadoSolicitud = async (req, res) => {
 
     // 🔥 **Verificar si el ID es válido**
     if (!ObjectId.isValid(solicitudId)) {
-      console.log(`❌ ID inválido recibido: ${solicitudId}`);
+      console.log(`❌ ID inválido recibido: '${solicitudId}'`);
       return res.status(400).json({ error: "El ID de la solicitud no es válido." });
     }
 
