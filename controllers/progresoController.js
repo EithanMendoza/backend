@@ -104,8 +104,9 @@ console.log(`📌 Comparando índice en ESTADOS_SERVICIO: ${indexEstadoActual} �
 
 
       // 🔥 Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
-      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);
-      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estadoNuevo);
+      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);  // 🔥 Definirlo primero
+      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estado);        // Luego definir el nuevo estado
+
 
       console.log(`📌 Índice actual: ${indexEstadoActual}, Índice nuevo: ${indexNuevoEstado}`);
 
