@@ -16,7 +16,7 @@ const esObjectIdValido = (id) => {
 const ESTADOS_SERVICIO = ['pendiente', 'en camino', 'en lugar', 'en proceso', 'finalizado'];
 
 // ✅ Controlador para obtener el estado de una solicitud
-exports.getEstadoSolicitud = async (req, res) => {
+exports.getEstadoSolicitudes = async (req, res) => {
   try {
     const { solicitudId } = req.params;
     console.log(`📌 ID recibido en el backend: '${solicitudId}'`);
