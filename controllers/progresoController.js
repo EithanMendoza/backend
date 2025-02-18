@@ -1,6 +1,5 @@
-const {progresoModel, obtenerEstadoSolicitud} = require('../models/progresoModel');
+const progresoModel = require('../models/progresoModel');
 const { MongoClient, ObjectId } = require('mongodb');
-const { obtenerEstadoSolicitud } = require("../models/progresoModel");
 
 const connectToDatabase = async () => {
   const client = new MongoClient(process.env.MONGO_URI);
@@ -16,23 +15,25 @@ const esObjectIdValido = (id) => {
 // Definir los estados en orden
 const ESTADOS_SERVICIO = ['pendiente', 'en camino', 'en lugar', 'en proceso', 'finalizado'];
 
-exports.getEstadoSolicitudes = async (req, res) => {
+// Obtener el historial de progreso de una solicitud específica
+exports.obtenerProgresoServicio = async (req, res) => {
   try {
     const { solicitudId } = req.params;
-    console.log(`📌 ID recibido en el backend: '${solicitudId}'`);
 
-    // 🔍 Llamar al modelo para obtener el estado
-    const estado = await obtenerEstadoSolicitud(solicitudId);
-
-    // 🚨 Validar si el estado fue encontrado o si hubo un error
-    if (!estado) {
-      return res.status(400).json({ error: "El ID de la solicitud no es válido o no existe." });
+    if (!ObjectId.isValid(solicitudId)) {
+      return res.status(400).json({ error: "ID de solicitud inválido." });
     }
 
-    return res.status(200).json({ estado_solicitud: estado });
-  } catch (error) {
-    console.error("❌ Error en getEstadoSolicitudes:", error);
-    return res.status(500).json({ error: "Error interno al obtener el estado de la solicitud.", detalle: error.message });
+    const historial = await progresoModel.obtenerHistorialProgreso(solicitudId);
+
+    if (!historial || historial.length === 0) {
+      return res.status(404).json({ error: "No hay historial de progreso para esta solicitud." });
+    }
+
+    res.status(200).json(historial);
+  } catch (err) {
+    console.error("❌ Error al obtener el historial de progreso:", err);
+    res.status(500).json({ error: "Error al obtener el historial de progreso.", detalle: err.message });
   }
 };
 
@@ -56,37 +57,23 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
 exports.getEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
 
-  console.log(`📌 ID recibido en el backend: '${solicitudId}'`);
-
   try {
     const client = await connectToDatabase();
     const db = client.db('AirTecs3');
     const progresoCollection = db.collection('progreso_servicio');
 
-    const solicitudIdLimpio = solicitudId.trim();  // Elimina espacios ocultos
-
-// 🔥 Verifica nuevamente si es un ObjectId válido
-if (!ObjectId.isValid(solicitudIdLimpio)) {
-  console.log(`❌ ID inválido después de trim(): '${solicitudIdLimpio}'`);
-  return res.status(400).json({ error: "El ID de la solicitud no es válido." });
-}
-
-
-    // ✅ Convertir el ID a ObjectId para hacer la búsqueda correctamente
-    const solicitudObjectId = new ObjectId(solicitudId);
-
-    // 🔍 Buscar el estado en la colección 'progreso_servicio'
-    const progreso = await progresoCollection.findOne({ solicitud_id: solicitudObjectId });
+    // Buscar en la colección 'progreso_servicio' el estado de la solicitud
+    const progreso = await progresoCollection.findOne({ solicitud_id: solicitudId });
 
     if (progreso) {
-      console.log(`🟢 Estado encontrado en BD: '${progreso.estado_solicitud.trim()}'`);
-      return res.status(200).json({ estado_solicitud: progreso.estado_solicitud.trim() });
+      // Si existe el progreso, devolver el estado
+      return res.status(200).json(progreso);
     } else {
-      console.log("🔴 No se encontró el progreso, devolviendo 'pendiente'");
+      // Si no existe, significa que la solicitud aún no ha sido actualizada, así que el primer estado es "en camino"
       return res.status(200).json({ estado_solicitud: 'pendiente' });
     }
   } catch (err) {
-    console.error('❌ Error al obtener el estado de la solicitud:', err);
+    console.error('Error al obtener el estado de la solicitud:', err);
     return res.status(500).json({ error: 'Error al obtener el estado de la solicitud.', detalle: err.message });
   }
 };
