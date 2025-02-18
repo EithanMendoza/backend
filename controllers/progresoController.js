@@ -78,7 +78,6 @@ exports.getEstadoSolicitud = async (req, res) => {
   }
 };
 
-// ✅ Función para actualizar el estado de una solicitud
 exports.actualizarEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
   const { estado, detalles } = req.body;
@@ -93,25 +92,31 @@ exports.actualizarEstadoSolicitud = async (req, res) => {
 
       const solicitudObjectId = new ObjectId(solicitudId);
 
-      // ✅ Buscar la solicitud en la colección de progreso_servicio
+      // 🔥 Obtener el estado actual de la solicitud
       const progresoActual = await db.collection('progreso_servicio').findOne({ solicitud_id: solicitudObjectId });
 
-      let estadoActual = progresoActual ? progresoActual.estado_solicitud : 'pendiente';
+      let estadoActual = progresoActual ? progresoActual.estado_solicitud.trim().toLowerCase() : 'pendiente';
+      let estadoNuevo = estado.trim().toLowerCase();  // 🔥 Convertir a minúsculas para evitar errores
 
-      // ✅ Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
+      console.log(`🟢 Estado actual en la BD: ${estadoActual}`);
+      console.log(`🔵 Estado que se intenta actualizar: ${estadoNuevo}`);
+
+      // 🔥 Verificar que el estado que se intenta actualizar sea el siguiente en la secuencia
       const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);
-      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estado);
+      const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estadoNuevo);
+
+      console.log(`📌 Índice actual: ${indexEstadoActual}, Índice nuevo: ${indexNuevoEstado}`);
 
       if (indexNuevoEstado !== indexEstadoActual + 1) {
           return res.status(400).json({ error: "El estado no sigue el orden requerido." });
       }
 
-      // ✅ Actualizar o insertar el estado en progreso_servicio
+      // 🔥 Actualizar el estado en la base de datos
       await db.collection('progreso_servicio').updateOne(
           { solicitud_id: solicitudObjectId },
           {
               $set: {
-                  estado_solicitud: estado,
+                  estado_solicitud: estadoNuevo,
                   detalles: detalles || "",
                   fecha_actualizacion: new Date()
               }
@@ -119,7 +124,7 @@ exports.actualizarEstadoSolicitud = async (req, res) => {
           { upsert: true }
       );
 
-      res.status(200).json({ mensaje: `Estado actualizado a '${estado}' correctamente.` });
+      res.status(200).json({ mensaje: `Estado actualizado a '${estadoNuevo}' correctamente.` });
   } catch (error) {
       console.error("❌ Error al actualizar el estado de la solicitud:", error);
       res.status(500).json({ error: "Error interno al actualizar el estado de la solicitud.", detalle: error.message });
