@@ -64,11 +64,14 @@ exports.getEstadoSolicitud = async (req, res) => {
     const db = client.db('AirTecs3');
     const progresoCollection = db.collection('progreso_servicio');
 
-    // 🔥 **Verificar si el ID es válido**
-    if (!ObjectId.isValid(solicitudId)) {
-      console.log(`❌ ID inválido recibido: '${solicitudId}'`);
-      return res.status(400).json({ error: "El ID de la solicitud no es válido." });
-    }
+    const solicitudIdLimpio = solicitudId.trim();  // Elimina espacios ocultos
+
+// 🔥 Verifica nuevamente si es un ObjectId válido
+if (!ObjectId.isValid(solicitudIdLimpio)) {
+  console.log(`❌ ID inválido después de trim(): '${solicitudIdLimpio}'`);
+  return res.status(400).json({ error: "El ID de la solicitud no es válido." });
+}
+
 
     // ✅ Convertir el ID a ObjectId para hacer la búsqueda correctamente
     const solicitudObjectId = new ObjectId(solicitudId);
