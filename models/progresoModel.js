@@ -236,12 +236,14 @@ exports.obtenerSolicitudesFinalizadasT = async () => {
 };
 
 
-// 🔥 Función para obtener el estado actual de una solicitud
 async function obtenerEstadoSolicitud(solicitudId) {
   try {
-    // ✅ Validar que el ID es un ObjectId válido en MongoDB
-    if (!ObjectId.isValid(solicitudId.trim())) {
-      console.log(`❌ ERROR: El ID no es válido en MongoDB: '${solicitudId}'`);
+    // ✅ Verificar si el ID ya es un ObjectId o si es un string de 24 caracteres (MongoDB ID válido)
+    let objectId;
+    if (ObjectId.isValid(solicitudId)) {
+      objectId = new ObjectId(solicitudId.trim());
+    } else {
+      console.log(`❌ ERROR: El ID de la solicitud no es válido en MongoDB: '${solicitudId}'`);
       return null;
     }
 
@@ -250,8 +252,8 @@ async function obtenerEstadoSolicitud(solicitudId) {
 
     // 🔍 Buscar en la colección 'progreso_servicio' el estado de la solicitud
     const progreso = await db
-      .collection(PROGRESO_SERVICIO_COLLECTION)
-      .findOne({ solicitud_id: new ObjectId(solicitudId.trim()) });
+      .collection("progreso_servicio")
+      .findOne({ solicitud_id: objectId });
 
     if (progreso) {
       console.log(`✅ Estado encontrado en BD: '${progreso.estado_solicitud}'`);

@@ -15,7 +15,6 @@ const esObjectIdValido = (id) => {
 // Definir los estados en orden
 const ESTADOS_SERVICIO = ['pendiente', 'en camino', 'en lugar', 'en proceso', 'finalizado'];
 
-// ✅ Controlador para obtener el estado de una solicitud
 exports.getEstadoSolicitudes = async (req, res) => {
   try {
     const { solicitudId } = req.params;
@@ -31,8 +30,8 @@ exports.getEstadoSolicitudes = async (req, res) => {
 
     return res.status(200).json({ estado_solicitud: estado });
   } catch (error) {
-    console.error("❌ Error en getEstadoSolicitud:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("❌ Error en getEstadoSolicitudes:", error);
+    return res.status(500).json({ error: "Error interno al obtener el estado de la solicitud.", detalle: error.message });
   }
 };
 
