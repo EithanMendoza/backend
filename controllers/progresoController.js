@@ -70,7 +70,7 @@ exports.getEstadoSolicitud = async (req, res) => {
       return res.status(200).json(progreso);
     } else {
       // Si no existe, significa que la solicitud aún no ha sido actualizada, así que el primer estado es "en camino"
-      return res.status(200).json({ estado_solicitud: 'en camino' });
+      return res.status(200).json({ estado_solicitud: 'pendiente' });
     }
   } catch (err) {
     console.error('Error al obtener el estado de la solicitud:', err);
