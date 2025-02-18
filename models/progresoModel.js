@@ -9,6 +9,8 @@ const connectToDatabase = async () => {
   return client;
 };
 
+const PROGRESO_SERVICIO_COLLECTION = "progreso_servicio";
+
 // Verificar el código de confirmación
 exports.verificarCodigoConfirmacion = async (solicitudId, codigoConfirmacion) => {
   const client = await connectToDatabase();
@@ -232,3 +234,36 @@ exports.obtenerSolicitudesFinalizadasT = async () => {
     await client.close();
   }
 };
+
+
+// 🔥 Función para obtener el estado actual de una solicitud
+async function obtenerEstadoSolicitud(solicitudId) {
+  try {
+    // ✅ Validar que el ID es un ObjectId válido en MongoDB
+    if (!ObjectId.isValid(solicitudId.trim())) {
+      console.log(`❌ ERROR: El ID no es válido en MongoDB: '${solicitudId}'`);
+      return null;
+    }
+
+    const client = await connectToDatabase();
+    const db = client.db("AirTecs3");
+
+    // 🔍 Buscar en la colección 'progreso_servicio' el estado de la solicitud
+    const progreso = await db
+      .collection(PROGRESO_SERVICIO_COLLECTION)
+      .findOne({ solicitud_id: new ObjectId(solicitudId.trim()) });
+
+    if (progreso) {
+      console.log(`✅ Estado encontrado en BD: '${progreso.estado_solicitud}'`);
+      return progreso.estado_solicitud;
+    } else {
+      console.log(`⚠ No se encontró estado en la BD para la solicitud: '${solicitudId}', devolviendo 'pendiente'`);
+      return "pendiente"; // Estado por defecto si no existe en la BD
+    }
+  } catch (error) {
+    console.error("❌ Error en obtenerEstadoSolicitud:", error);
+    throw new Error("Error al obtener el estado de la solicitud.");
+  }
+}
+
+module.exports = { obtenerEstadoSolicitud };

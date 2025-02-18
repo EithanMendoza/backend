@@ -1,4 +1,4 @@
-const progresoModel = require('../models/progresoModel');
+const {progresoModel, obtenerEstadoSolicitud} = require('../models/progresoModel');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const connectToDatabase = async () => {
@@ -15,25 +15,24 @@ const esObjectIdValido = (id) => {
 // Definir los estados en orden
 const ESTADOS_SERVICIO = ['pendiente', 'en camino', 'en lugar', 'en proceso', 'finalizado'];
 
-// Obtener el historial de progreso de una solicitud específica
-exports.obtenerProgresoServicio = async (req, res) => {
+// ✅ Controlador para obtener el estado de una solicitud
+exports.getEstadoSolicitud = async (req, res) => {
   try {
     const { solicitudId } = req.params;
+    console.log(`📌 ID recibido en el backend: '${solicitudId}'`);
 
-    if (!ObjectId.isValid(solicitudId)) {
-      return res.status(400).json({ error: "ID de solicitud inválido." });
+    // 🔍 Llamar al modelo para obtener el estado
+    const estado = await obtenerEstadoSolicitud(solicitudId);
+
+    // 🚨 Validar si el estado fue encontrado o si hubo un error
+    if (!estado) {
+      return res.status(400).json({ error: "El ID de la solicitud no es válido o no existe." });
     }
 
-    const historial = await progresoModel.obtenerHistorialProgreso(solicitudId);
-
-    if (!historial || historial.length === 0) {
-      return res.status(404).json({ error: "No hay historial de progreso para esta solicitud." });
-    }
-
-    res.status(200).json(historial);
-  } catch (err) {
-    console.error("❌ Error al obtener el historial de progreso:", err);
-    res.status(500).json({ error: "Error al obtener el historial de progreso.", detalle: err.message });
+    return res.status(200).json({ estado_solicitud: estado });
+  } catch (error) {
+    console.error("❌ Error en getEstadoSolicitud:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
