@@ -54,30 +54,31 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
 };
 
 // Controller: obtener estado de la solicitud
-// Controller: obtener estado de la solicitud
 exports.getEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
+
+  console.log(`📌 ID recibido en el backend: ${solicitudId}`); // 🔥 Verificar qué ID está llegando
 
   try {
     const client = await connectToDatabase();
     const db = client.db('AirTecs3');
     const progresoCollection = db.collection('progreso_servicio');
 
-    // ✅ Verificar si el ID es válido antes de convertirlo
+    // 🔥 **Verificar si el ID es válido**
     if (!ObjectId.isValid(solicitudId)) {
       console.log(`❌ ID inválido recibido: ${solicitudId}`);
       return res.status(400).json({ error: "El ID de la solicitud no es válido." });
     }
 
-    // ✅ Convertir el ID a ObjectId
+    // ✅ Convertir el ID a ObjectId para hacer la búsqueda correctamente
     const solicitudObjectId = new ObjectId(solicitudId);
 
-    // 🔍 Buscar en la colección 'progreso_servicio' el estado de la solicitud
+    // 🔍 Buscar el estado en la colección 'progreso_servicio'
     const progreso = await progresoCollection.findOne({ solicitud_id: solicitudObjectId });
 
     if (progreso) {
-      console.log(`🟢 Estado encontrado en BD: ${progreso.estado_solicitud}`);
-      return res.status(200).json({ estado_solicitud: progreso.estado_solicitud });
+      console.log(`🟢 Estado encontrado en BD: '${progreso.estado_solicitud.trim()}'`);
+      return res.status(200).json({ estado_solicitud: progreso.estado_solicitud.trim() });
     } else {
       console.log("🔴 No se encontró el progreso, devolviendo 'pendiente'");
       return res.status(200).json({ estado_solicitud: 'pendiente' });
