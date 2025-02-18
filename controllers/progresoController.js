@@ -96,10 +96,10 @@ exports.actualizarEstadoSolicitud = async (req, res) => {
       const progresoActual = await db.collection('progreso_servicio').findOne({ solicitud_id: solicitudObjectId });
 
       let estadoActual = progresoActual ? progresoActual.estado_solicitud.trim().toLowerCase() : 'pendiente';
-      let estadoNuevo = estado.trim().toLowerCase();  // 🔥 Convertir a minúsculas para evitar errores
+      let estadoNuevo = estado.trim().toLowerCase();
 
       // ✅ Obtener los índices ANTES de imprimirlos
-      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);  
+      const indexEstadoActual = ESTADOS_SERVICIO.indexOf(estadoActual);
       const indexNuevoEstado = ESTADOS_SERVICIO.indexOf(estadoNuevo);
 
       console.log(`🟢 Estado actual en BD: '${estadoActual}'`);
