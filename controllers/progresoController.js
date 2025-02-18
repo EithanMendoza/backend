@@ -1,5 +1,6 @@
 const {progresoModel, obtenerEstadoSolicitud} = require('../models/progresoModel');
 const { MongoClient, ObjectId } = require('mongodb');
+const { obtenerEstadoSolicitud } = require("../models/progresoModel");
 
 const connectToDatabase = async () => {
   const client = new MongoClient(process.env.MONGO_URI);
