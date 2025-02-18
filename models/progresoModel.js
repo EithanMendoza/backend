@@ -10,6 +10,30 @@ const connectToDatabase = async () => {
 };
 
 
+// Obtener el estado de una solicitud por su ID
+exports.obtenerEstadoSolicitud = async (solicitudId) => {
+  try {
+    // Asegurarse de que el ID sea un ObjectId válido
+    const objectId = new ObjectId(solicitudId);
+    const client = await connectToDatabase();
+    const db = client.db('AirTecs3');
+    const progresoCollection = db.collection('progreso_servicio');
+
+    // Buscar el estado en la colección 'progreso_servicio'
+    const progreso = await progresoCollection.findOne({ solicitud_id: objectId });
+
+    if (progreso) {
+      console.log(`✅ Estado encontrado en BD: '${progreso.estado_solicitud}'`);
+      return progreso.estado_solicitud;
+    } else {
+      console.log(`⚠ No se encontró estado en la BD, devolviendo 'pendiente'`);
+      return "pendiente"; // Estado por defecto
+    }
+  } catch (err) {
+    console.error('❌ Error en obtenerEstadoSolicitud:', err);
+    throw new Error('Error al obtener el estado de la solicitud.');
+  }
+};
 
 // Verificar el código de confirmación
 exports.verificarCodigoConfirmacion = async (solicitudId, codigoConfirmacion) => {

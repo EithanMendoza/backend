@@ -1,4 +1,4 @@
-const progresoModel = require('../models/progresoModel');
+const { progresoModel, obtenerEstadoSolicitud } = require('../models/progresoModel');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const connectToDatabase = async () => {
@@ -53,28 +53,22 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
   }
 };
 
-// Controller: obtener estado de la solicitud
+// Función para obtener el estado de una solicitud
 exports.getEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
 
   try {
-    const client = await connectToDatabase();
-    const db = client.db('AirTecs3');
-    const progresoCollection = db.collection('progreso_servicio');
+    // Llamamos a la función del modelo para obtener el estado
+    const estado = await obtenerEstadoSolicitud(solicitudId);
 
-    // Buscar en la colección 'progreso_servicio' el estado de la solicitud
-    const progreso = await progresoCollection.findOne({ solicitud_id: solicitudId });
-
-    if (progreso) {
-      // Si existe el progreso, devolver el estado
-      return res.status(200).json(progreso);
-    } else {
-      // Si no existe, significa que la solicitud aún no ha sido actualizada, así que el primer estado es "en camino"
-      return res.status(200).json({ estado_solicitud: 'pendiente' });
+    if (!estado) {
+      return res.status(400).json({ error: "El ID de la solicitud no es válido o no existe." });
     }
-  } catch (err) {
-    console.error('Error al obtener el estado de la solicitud:', err);
-    return res.status(500).json({ error: 'Error al obtener el estado de la solicitud.', detalle: err.message });
+
+    return res.status(200).json({ estado_solicitud: estado });
+  } catch (error) {
+    console.error("❌ Error en getEstadoSolicitudes:", error);
+    return res.status(500).json({ error: "Error interno al obtener el estado de la solicitud.", detalle: error.message });
   }
 };
 
