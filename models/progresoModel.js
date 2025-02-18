@@ -10,24 +10,30 @@ const connectToDatabase = async () => {
 };
 
 
-// Obtener el estado de una solicitud por su ID
+// Función para obtener el estado de la solicitud
 exports.obtenerEstadoSolicitud = async (solicitudId) => {
   try {
-    // Asegurarse de que el ID sea un ObjectId válido
-    const objectId = new ObjectId(solicitudId);
+    // Validar si el ID es un ObjectId válido antes de usarlo
+    if (!ObjectId.isValid(solicitudId)) {
+      console.log(`❌ ERROR: El ID de la solicitud no es válido en MongoDB: '${solicitudId}'`);
+      return null;
+    }
+
+    const objectId = new ObjectId(solicitudId.trim());  // Limpiamos y convertimos el ID
+
     const client = await connectToDatabase();
     const db = client.db('AirTecs3');
     const progresoCollection = db.collection('progreso_servicio');
 
-    // Buscar el estado en la colección 'progreso_servicio'
+    // Buscar el estado de la solicitud en la colección
     const progreso = await progresoCollection.findOne({ solicitud_id: objectId });
 
     if (progreso) {
       console.log(`✅ Estado encontrado en BD: '${progreso.estado_solicitud}'`);
       return progreso.estado_solicitud;
     } else {
-      console.log(`⚠ No se encontró estado en la BD, devolviendo 'pendiente'`);
-      return "pendiente"; // Estado por defecto
+      console.log(`⚠ No se encontró estado en la BD para la solicitud: '${solicitudId}', devolviendo 'pendiente'`);
+      return "pendiente";  // Estado por defecto si no existe en la BD
     }
   } catch (err) {
     console.error('❌ Error en obtenerEstadoSolicitud:', err);

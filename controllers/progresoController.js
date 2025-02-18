@@ -53,12 +53,11 @@ exports.obtenerSolicitudesFinalizadasT = async (req, res) => {
   }
 };
 
-// Función para obtener el estado de una solicitud
 exports.getEstadoSolicitud = async (req, res) => {
   const { solicitudId } = req.params;
 
   try {
-    // Llamamos a la función del modelo para obtener el estado
+    // Llamamos al modelo para obtener el estado de la solicitud
     const estado = await obtenerEstadoSolicitud(solicitudId);
 
     if (!estado) {
