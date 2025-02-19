@@ -10,17 +10,19 @@ const connectToDatabase = async () => {
 };
 
 
-// Función para obtener el estado de la solicitud
 exports.obtenerEstadoSolicitud = async (solicitudId) => {
   try {
+    // Verificar el valor del ID recibido
+    console.log(`ID recibido: '${solicitudId}'`);
+    console.log(`ID después de trim(): '${solicitudId.trim()}'`);
+
     // Validar si el ID es un ObjectId válido antes de usarlo
-    if (!ObjectId.isValid(solicitudId)) {
+    if (!ObjectId.isValid(solicitudId.trim())) {
       console.log(`❌ ERROR: El ID de la solicitud no es válido en MongoDB: '${solicitudId}'`);
       return null;
     }
 
     const objectId = new ObjectId(solicitudId.trim());  // Limpiamos y convertimos el ID
-    console.log(`ID recibido: '${solicitudId}'`);
 
     const client = await connectToDatabase();
     const db = client.db('AirTecs3');
