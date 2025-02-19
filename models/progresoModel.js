@@ -20,6 +20,7 @@ exports.obtenerEstadoSolicitud = async (solicitudId) => {
     }
 
     const objectId = new ObjectId(solicitudId.trim());  // Limpiamos y convertimos el ID
+    console.log(`ID recibido: '${solicitudId}'`);
 
     const client = await connectToDatabase();
     const db = client.db('AirTecs3');
