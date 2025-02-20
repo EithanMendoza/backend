@@ -3,6 +3,6 @@ const router = express.Router();
 const progresoController = require("../controllers/progresoController");
 
 // Ruta para obtener el historial de progreso de una solicitud específica
-router.get("/:solicitudId", progresoController.obtenerProgresoServicio);
+router.get("/:solicitudId", progresoController.getEstadoSolicitud);
 
 module.exports = router;
