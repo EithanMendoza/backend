@@ -52,7 +52,7 @@ app.use('/progreso', progresoRouter);
 app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
 app.use('/solicitudes', solicitudesRoutes);
 app.use('/progresoT', progresoT);
-app.use('/conekta', conektaRoutes);
+app.use('/api/pagos', conektaRoutes); // Prefijo para las rutas de pagos
 
 app.use('/solicitudes-tecnicos', solicitudesTecnicosRoutes);
 
