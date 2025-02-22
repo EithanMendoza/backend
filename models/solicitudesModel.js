@@ -169,17 +169,18 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
       {
         $match: { 
-          userId: new ObjectId(userId)  // Se asegura que se compara con ObjectId
+          userId: new ObjectId(userId)
         }
       },
       {
         $lookup: {
           from: "tipos_servicio",
-          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } }, // Convertimos a string
+          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } },
           pipeline: [
             {
               $match: {
-                $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } // Comparación correcta
+                $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] }
+              }
             }
           ],
           as: "detalle_servicio"
@@ -189,8 +190,8 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
 
       {
         $lookup: {
-          from: 'usuarios', // La colección donde están los usuarios
-          let: { usuarioId: { $toObjectId: "$userId" } }, // 🔹 Convertimos userId a ObjectId
+          from: 'usuarios',
+          let: { usuarioId: { $toObjectId: "$userId" } },
           pipeline: [
             { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
           ],
@@ -214,10 +215,11 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           created_at: 1,
           expires_at: 1,
           nombre_servicio: { $ifNull: ["$detalle_servicio.nombre_servicio", "No especificado"] },
-          nombre_usuario: "$usuario_info.nombre_usuario", // 🔹 Ahora sí obtenemos el nombre
+          monto: { $ifNull: ["$detalle_servicio.monto", 0] }, // ✅ Incluimos el monto
+          nombre_usuario: "$usuario_info.nombre_usuario",
         }
       }
-    ]).toArray(); // Se coloca correctamente aquí
+    ]).toArray();
 
     return solicitud.length > 0 ? solicitud[0] : null;
   } finally {
@@ -294,9 +296,8 @@ exports.getSolicitudById = async (solicitudId) => {
   try {
     const solicitud = await db.collection('solicitudes_servicio')
       .aggregate([
-        { $match: { _id: new ObjectId(solicitudId) } }, // ✅ Filtrar por ID específico
+        { $match: { _id: new ObjectId(solicitudId) } },
 
-        // 🔹 Lookup para obtener información del servicio
         {
           $lookup: {
             from: 'tipos_servicio',
@@ -309,11 +310,10 @@ exports.getSolicitudById = async (solicitudId) => {
         },
         { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
 
-        // 🔹 Lookup para obtener información del usuario
         {
           $lookup: {
             from: 'usuarios',
-            let: { usuarioId: { $toObjectId: "$userId" } }, // ✅ Convertimos userId a ObjectId
+            let: { usuarioId: { $toObjectId: "$userId" } },
             pipeline: [
               { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
             ],
@@ -326,20 +326,21 @@ exports.getSolicitudById = async (solicitudId) => {
           $project: {
             _id: 1,
             userId: 1,
-            nombre_usuario: "$usuario_info.nombre_usuario", // ✅ Nombre del usuario
+            nombre_usuario: "$usuario_info.nombre_usuario",
             direccion: 1,
             detalles: 1,
             fecha: 1,
             hora: 1,
             marca_ac: 1,
             tipo_ac: 1,
-            tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] }
+            tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] },
+            monto: { $ifNull: ["$servicio_info.monto", 0] } // ✅ Incluimos el monto
           },
         },
       ])
       .toArray();
 
-    return solicitud.length > 0 ? solicitud[0] : null; // ✅ Retornar solo un objeto, no un array
+    return solicitud.length > 0 ? solicitud[0] : null;
   } finally {
     await client.close();
   }

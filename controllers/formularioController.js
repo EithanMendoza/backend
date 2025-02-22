@@ -14,8 +14,19 @@ exports.crearSolicitud = async (req, res) => {
     }
 
     const userId = new ObjectId(req.user.id);
+    const client = await connectToDatabase();
+    const db = client.db("AirTecs3");
 
-    // 🔥 Crear la solicitud en la BD
+    // 🔥 Obtener el monto desde la colección tipos_servicio
+    const tipoServicio = await db.collection("tipos_servicio").findOne({ _id: new ObjectId(tipo_servicio_id) });
+
+    if (!tipoServicio) {
+      return res.status(404).json({ error: "Tipo de servicio no encontrado." });
+    }
+
+    const monto = tipoServicio.monto || 0; // ✅ Asignar el monto o 0 si no existe
+
+    // 🔥 Crear la solicitud en la BD incluyendo el monto
     const { solicitudId, codigoConfirmacion } = await formularioModel.crearSolicitud({
       userId,
       tipo_servicio_id: new ObjectId(tipo_servicio_id),
@@ -26,12 +37,14 @@ exports.crearSolicitud = async (req, res) => {
       hora,
       direccion,
       estado: "pendiente",
+      monto, // ✅ Nuevo campo agregado
     });
 
     res.status(201).json({
       mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
       codigo_inicial: codigoConfirmacion, // 🔥 Se envía al frontend
+      monto, // ✅ Devolver el monto en la respuesta
     });
 
   } catch (err) {
@@ -39,6 +52,7 @@ exports.crearSolicitud = async (req, res) => {
     res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
+
 
 
 
