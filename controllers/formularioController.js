@@ -1,5 +1,5 @@
 const formularioModel = require('../models/formularioModel');
-const { ObjectId } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const connectToDatabase = async () => {
   const client = new MongoClient(process.env.MONGO_URI);
