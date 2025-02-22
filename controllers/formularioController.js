@@ -1,6 +1,12 @@
 const formularioModel = require('../models/formularioModel');
 const { ObjectId } = require('mongodb');
 
+const connectToDatabase = async () => {
+  const client = new MongoClient(process.env.MONGO_URI);
+  await client.connect();
+  return client;
+};
+
 exports.crearSolicitud = async (req, res) => {
   try {
     const { tipo_servicio_id, marca_ac, tipo_ac, detalles, fecha, hora, direccion } = req.body;
