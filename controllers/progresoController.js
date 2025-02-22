@@ -1,4 +1,4 @@
-const { progresoModel, obtenerEstadoSolicitud } = require('../models/progresoModel');
+const { progresoModel, obtenerEstadoSolicitud, obtenerEstadoSolicitudUsuario } = require('../models/progresoModel');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const connectToDatabase = async () => {
@@ -59,6 +59,24 @@ exports.getEstadoSolicitud = async (req, res) => {
   try {
     // Llamamos al modelo para obtener el estado de la solicitud
     const estado = await obtenerEstadoSolicitud(solicitudId);
+
+    if (!estado) {
+      return res.status(400).json({ error: "El ID de la solicitud no es válido o no existe." });
+    }
+
+    return res.status(200).json({ estado_solicitud: estado });
+  } catch (error) {
+    console.error("❌ Error en getEstadoSolicitudes:", error);
+    return res.status(500).json({ error: "Error interno al obtener el estado de la solicitud.", detalle: error.message });
+  }
+};
+
+exports.getEstadoSolicitudUsuario = async (req, res) => {
+  const { solicitudId } = req.params;
+
+  try {
+    // Llamamos al modelo para obtener el estado de la solicitud
+    const estado = await obtenerEstadoSolicitudUsuario(solicitudId);
 
     if (!estado) {
       return res.status(400).json({ error: "El ID de la solicitud no es válido o no existe." });

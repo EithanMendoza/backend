@@ -44,6 +44,40 @@ exports.obtenerEstadoSolicitud = async (solicitudId) => {
   }
 };
 
+exports.obtenerEstadoSolicitudUsuario = async (solicitudId) => {
+  try {
+    // Verificar el valor del ID recibido
+    console.log(`ID recibido: '${solicitudId}'`);
+    console.log(`ID después de trim(): '${solicitudId.trim()}'`);
+
+    // Validar si el ID es un ObjectId válido antes de usarlo
+    if (!ObjectId.isValid(solicitudId.trim())) {
+      console.log(`❌ ERROR: El ID de la solicitud no es válido en MongoDB: '${solicitudId}'`);
+      return null;
+    }
+
+    const objectId = new ObjectId(solicitudId.trim());  // Limpiamos y convertimos el ID
+
+    const client = await connectToDatabase();
+    const db = client.db('AirTecs3');
+    const progresoCollection = db.collection('progreso_servicio');
+
+    // Buscar el estado de la solicitud en la colección
+    const progreso = await progresoCollection.findOne({ solicitud_id: objectId });
+
+    if (progreso) {
+      console.log(`✅ Estado encontrado en BD: '${progreso.estado_solicitud}'`);
+      return progreso.estado_solicitud;
+    } else {
+      console.log(`⚠ No se encontró estado en la BD para la solicitud: '${solicitudId}', devolviendo 'pendiente'`);
+      return "pendiente";  // Estado por defecto si no existe en la BD
+    }
+  } catch (err) {
+    console.error('❌ Error en obtenerEstadoSolicitud:', err);
+    throw new Error('Error al obtener el estado de la solicitud.');
+  }
+};
+
 // Verificar el código de confirmación
 exports.verificarCodigoConfirmacion = async (solicitudId, codigoConfirmacion) => {
   const client = await connectToDatabase();
