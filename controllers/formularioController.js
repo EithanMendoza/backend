@@ -15,16 +15,12 @@ exports.crearSolicitud = async (req, res) => {
       return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
 
-    if (!ObjectId.isValid(tipo_servicio_id)) {
-      return res.status(400).json({ error: "El tipo de servicio ID no es válido." });
-    }
-
     const userId = new ObjectId(req.user.id);
     const client = await connectToDatabase();
     const db = client.db("AirTecs3");
 
-    // 🔥 Obtener el monto desde la colección tipos_servicio
-    const tipoServicio = await db.collection("tipos_servicio").findOne({ _id: new ObjectId(tipo_servicio_id) });
+    // ✅ Buscar por string en lugar de convertir a ObjectId
+    const tipoServicio = await db.collection("tipos_servicio").findOne({ _id: tipo_servicio_id });
 
     if (!tipoServicio) {
       return res.status(404).json({ error: "Tipo de servicio no encontrado." });
@@ -35,7 +31,7 @@ exports.crearSolicitud = async (req, res) => {
     // 🔥 Crear la solicitud en la BD incluyendo el monto
     const { solicitudId, codigoConfirmacion } = await formularioModel.crearSolicitud({
       userId,
-      tipo_servicio_id: new ObjectId(tipo_servicio_id),
+      tipo_servicio_id,  // ✅ Guardamos el string directamente
       marca_ac,
       tipo_ac,
       detalles,
@@ -58,6 +54,7 @@ exports.crearSolicitud = async (req, res) => {
     res.status(500).json({ error: "Error al crear la solicitud de servicio", detalle: err.message });
   }
 };
+
 
 
 
