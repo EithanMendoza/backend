@@ -39,6 +39,7 @@ const solicitudesRoutes = require('./routes/solicitudesRoutes');
 const progresoT = require('./routes/progresoT');
 const solicitudesTecnicosRoutes = require('./routes/solicitudesTecnicos');
 const conektaRoutes = require('./routes/ConektaRoutes');
+const pagosRoutes = require('./routes/pago'); // Ruta al archivo de rutas
 
 // Configurar rutas
 app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes); // Rutas de autenticación de técnicos
@@ -53,6 +54,7 @@ app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
 app.use('/solicitudes', solicitudesRoutes);
 app.use('/progresoT', progresoT);
 app.use('/api/pagos', conektaRoutes); // Prefijo para las rutas de pagos
+app.use('/pagos', pagosRoutes);
 
 app.use('/solicitudes-tecnicos', solicitudesTecnicosRoutes);
 
