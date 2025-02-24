@@ -169,9 +169,15 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
     const solicitud = await db.collection("solicitudes_servicio").aggregate([
       {
         $match: { 
-          userId: new ObjectId(userId)
+          userId: new ObjectId(userId),
+          estado: { $ne: "finalizado" } // ✅ Filtra solicitudes que NO estén pagadas
         }
       },
+      {
+        $sort: { created_at: -1 } // ✅ Ordena por la más reciente
+      },
+      { $limit: 1 }, // ✅ Solo trae la solicitud activa más reciente
+
       {
         $lookup: {
           from: "tipos_servicio",
@@ -215,7 +221,7 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
           created_at: 1,
           expires_at: 1,
           nombre_servicio: { $ifNull: ["$detalle_servicio.nombre_servicio", "No especificado"] },
-          monto: { $ifNull: ["$detalle_servicio.monto", 0] }, // ✅ Incluimos el monto
+          monto: { $ifNull: ["$detalle_servicio.monto", 0] },
           nombre_usuario: "$usuario_info.nombre_usuario",
         }
       }
@@ -226,6 +232,7 @@ exports.obtenerSolicitudPorUsuario = async (userId) => {
     await client.close();
   }
 };
+
 
 
 exports.getSolicitudesPendientesTecnicos = async () => {
