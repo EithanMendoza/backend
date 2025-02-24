@@ -62,8 +62,7 @@ router.get('/solicitud/:solicitudId', async (req, res) => {
     const solicitudId = req.params.solicitudId;
   
     try {
-      // Buscar el pago basado en el ID de la solicitud
-      const pago = await db.collection('pagos').findOne({ solicitud_id: solicitudId });
+        const pago = await db.collection('pagos').findOne({ solicitud_id: new ObjectId(solicitudId) });
   
       if (!pago) {
         return res.status(404).json({ error: 'No se encontró un pago para esta solicitud.' });
