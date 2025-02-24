@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { MongoClient, ObjectId } = require('mongodb');
+const pagosController = require("../controllers/pagoController");
 
 
 const connectToDatabase = async () => {
@@ -76,5 +77,8 @@ router.get('/solicitud/:solicitudId', async (req, res) => {
       client.close();
     }
   });
+
+  // ✅ PUT: Actualizar el estado del pago
+router.put("/actualizar-estado/:pagoId", pagosController.actualizarEstadoPago);
   
   module.exports = router;

@@ -100,3 +100,39 @@ exports.crearPago = async (req, res) => {
     res.status(500).json({ error: "Error al procesar el pago.", detalle: error.message });
   }
 };
+
+
+// ✅ Actualizar estado del pago
+exports.actualizarEstadoPago = async (req, res) => {
+  const { pagoId } = req.params;
+  const { estado } = req.body;
+
+  // 🛑 Validaciones básicas
+  if (!ObjectId.isValid(pagoId)) {
+    return res.status(400).json({ error: "ID de pago no válido." });
+  }
+
+  if (!estado) {
+    return res.status(400).json({ error: "El nuevo estado es obligatorio." });
+  }
+
+  try {
+    const client = await connectToDatabase();
+    const db = client.db("AirTecs3");
+
+    // 🔥 Actualizar el estado en la colección pagos
+    const result = await db.collection("pagos").updateOne(
+      { _id: new ObjectId(pagoId) },
+      { $set: { estado: estado } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "Pago no encontrado." });
+    }
+
+    res.status(200).json({ mensaje: "✅ Estado del pago actualizado exitosamente." });
+  } catch (error) {
+    console.error("❌ Error al actualizar el estado del pago:", error);
+    res.status(500).json({ error: "Error al actualizar el estado del pago." });
+  }
+};
