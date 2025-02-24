@@ -56,22 +56,26 @@ router.get('/tecnico/:tecnicoId', async (req, res) => {
   }
 });
 
-// ✅ Obtener un pago por ID
-router.get('/:pagoId', async (req, res) => {
-  const client = await connectToDatabase();
-  const db = client.db("AirTecs3");
-  const pagoId = req.params.pagoId;
-
-  try {
-    const pago = await db.collection('pagos').findOne({ _id: ObjectId(pagoId) });
-    if (!pago) return res.status(404).json({ error: 'Pago no encontrado.' });
-
-    res.status(200).json(pago);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener el pago.' });
-  } finally {
-    client.close();
-  }
-});
-
-module.exports = router;
+router.get('/solicitud/:solicitudId', async (req, res) => {
+    const client = await connectToDatabase();
+    const db = client.db("AirTecs3");
+    const solicitudId = req.params.solicitudId;
+  
+    try {
+      // Buscar el pago basado en el ID de la solicitud
+      const pago = await db.collection('pagos').findOne({ solicitud_id: solicitudId });
+  
+      if (!pago) {
+        return res.status(404).json({ error: 'No se encontró un pago para esta solicitud.' });
+      }
+  
+      res.status(200).json(pago);
+    } catch (error) {
+      console.error("Error al obtener el pago:", error);
+      res.status(500).json({ error: 'Error al obtener el pago.' });
+    } finally {
+      client.close();
+    }
+  });
+  
+  module.exports = router;
