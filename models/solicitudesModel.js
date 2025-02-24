@@ -93,8 +93,8 @@ exports.getSolicitudesAceptadasPorTecnico = async (tecnicoId) => {
       {
         $match: {
           tecnico_id: new ObjectId(tecnicoId),
-          estado: "aceptada"
-        }
+          estado: { $ne: "pagado" }
+        }        
       },
       {
         $lookup: {
