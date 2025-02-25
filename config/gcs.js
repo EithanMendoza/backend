@@ -1,11 +1,13 @@
 const { Storage } = require("@google-cloud/storage");
 const path = require("path");
 
+const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+
 // Configuración del bucket
 const storage = new Storage({
-  keyFilename: path.join(__dirname, "./google-cloud-key.json"),
-  projectId: "divine-booking-440417-d6", // Reemplaza con tu ID de proyecto
-});
+    credentials,
+    projectId: credentials.project_id,
+  });
 
 const bucket = storage.bucket("airtecs"); // Reemplaza con el nombre de tu bucket
 
