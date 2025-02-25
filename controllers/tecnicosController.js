@@ -54,14 +54,17 @@ exports.registrarTecnico = async (req, res) => {
       return res.status(400).json({ error: 'El email ya está registrado.' });
     }
 
+    // Hasheamos la contraseña
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Incluir el campo avatar con la imagen por defecto
     const tecnico = {
       nombre_usuario,
       email,
       password: hashedPassword,
       especialidad,
       telefono,
+      avatar: 'uploads/avatar-default.jpg',  // Ruta de la imagen por defecto
       created_at: new Date(),
     };
 
@@ -76,6 +79,7 @@ exports.registrarTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error interno al registrar el técnico.', detalle: error.message });
   }
 };
+
 
 // **Iniciar sesión de técnico**
 exports.iniciarSesionTecnico = async (req, res) => {
