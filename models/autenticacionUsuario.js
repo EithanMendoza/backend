@@ -9,6 +9,13 @@ const connectToDatabase = async () => {
   return client;
 };
 
+const UsuarioSchema = new mongoose.Schema({
+  nombre_usuario: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  avatar: { type: String, default: 'uploads/avatar-default.webp' }
+}, { timestamps: true });
+
 // Registrar usuario
 exports.registerUsuario = async (usuario) => {
   const client = await connectToDatabase();
@@ -54,4 +61,21 @@ exports.closeSession = async (sessionToken) => {
 
   await client.close();
   return result.modifiedCount > 0;
+};
+
+// 📌 Buscar usuario por ID
+exports.findUsuarioById = async (id) => {
+  try {
+    const client = await connectToDatabase();
+    const db = client.db('AirTecs3');
+
+    // Convertimos el id a ObjectId
+    const usuario = await db.collection('usuarios').findOne({ _id: new ObjectId(id) });
+
+    await client.close();
+    return usuario;
+  } catch (error) {
+    console.error('Error al buscar usuario por ID:', error);
+    throw new Error('Error al buscar usuario por ID');
+  }
 };
