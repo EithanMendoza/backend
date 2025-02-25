@@ -9,12 +9,6 @@ const connectToDatabase = async () => {
   return client;
 };
 
-const UsuarioSchema = new mongoose.Schema({
-  nombre_usuario: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  avatar: { type: String, default: 'uploads/avatar-default.webp' }
-}, { timestamps: true });
 
 // Registrar usuario
 exports.registerUsuario = async (usuario) => {
