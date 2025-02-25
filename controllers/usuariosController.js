@@ -170,3 +170,28 @@ exports.listUsers = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
   }
 };
+
+// 📌 GET Usuario por ID (Autenticado)
+exports.getUserById = async (req, res) => {
+  try {
+    const userId = req.user.id; // ID extraído del token por el middleware
+
+    // Buscar al usuario en la base de datos y excluir la contraseña
+    const user = await Usuario.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    // Retornar los datos del usuario
+    res.status(200).json({
+      id: user._id,
+      nombre_usuario: user.nombre_usuario,
+      email: user.email,
+      avatar: user.avatar, // La ruta al avatar
+    });
+  } catch (err) {
+    console.error('Error al obtener usuario:', err);
+    res.status(500).json({ message: 'Error al obtener información del usuario.' });
+  }
+};
