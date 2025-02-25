@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Importar path
 require('dotenv').config(); // Cargar variables de entorno
 const { dbConnect } = require('./database'); // Conexión a MongoDB
 
@@ -12,6 +13,9 @@ app.use(cors());
 
 // Middleware para parsear JSON
 app.use(express.json());
+
+// ✅ Servir archivos estáticos desde la carpeta 'uploads'
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Conexión a MongoDB
 (async () => {
@@ -34,17 +38,17 @@ const formularioRouter = require('./routes/formulario');
 const homeRouter = require('./routes/home');
 const autenticacionUsuariosRoutes = require('./routes/autenticacionUsuario');
 const progresoRouter = require('./routes/progreso');
-const tecnicosRoutes = require('./routes/tecnicos'); // Ruta específica para técnicos
+const tecnicosRoutes = require('./routes/tecnicos');
 const solicitudesRoutes = require('./routes/solicitudesRoutes');
 const progresoT = require('./routes/progresoT');
 const solicitudesTecnicosRoutes = require('./routes/solicitudesTecnicos');
 const conektaRoutes = require('./routes/ConektaRoutes');
-const pagosRoutes = require('./routes/pago'); // Ruta al archivo de rutas
+const pagosRoutes = require('./routes/pago');
 const pagoRoutes = require('./routes/pagos');
 
 // Configurar rutas
-app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes); // Rutas de autenticación de técnicos
-app.use('/tecnicos', tecnicosRoutes); // Ruta para manejar los técnicos
+app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes);
+app.use('/tecnicos', tecnicosRoutes);
 app.use('/aceptacionSolicitud', aceptacionSolicitudRouter);
 app.use('/actualizacion', actualizacionRouter);
 app.use('/completado', completadoRouter);
@@ -54,7 +58,7 @@ app.use('/progreso', progresoRouter);
 app.use('/autenticacionUsuario', autenticacionUsuariosRoutes);
 app.use('/solicitudes', solicitudesRoutes);
 app.use('/progresoT', progresoT);
-app.use('/api/pagos', conektaRoutes); // Prefijo para las rutas de pagos
+app.use('/api/pagos', conektaRoutes);
 app.use('/pagos', pagosRoutes);
 app.use('/pago', pagoRoutes);
 app.use('/solicitudes-tecnicos', solicitudesTecnicosRoutes);
