@@ -73,3 +73,16 @@ exports.findUsuarioById = async (id) => {
     throw new Error('Error al buscar usuario por ID');
   }
 };
+
+// 📌 Actualizar URL del avatar
+exports.updateUsuarioAvatar = async (userId, avatarUrl) => {
+  const client = await connectToDatabase();
+  const db = client.db("AirTecs3");
+
+  await db.collection("usuarios").updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { avatar: avatarUrl } }
+  );
+
+  await client.close();
+};

@@ -3,8 +3,19 @@ const bcrypt = require('bcrypt');
 const usuariosModel = require('../models/autenticacionUsuario');
 const multer = require('multer');
 const path = require('path');
+const { Storage } = require('@google-cloud/storage');
+const { v4: uuidv4 } = require('uuid');
 
 const saltRounds = 10;
+
+// 📌 Configuración de Google Cloud Storage
+const storage = new Storage({
+  keyFilename: path.join(__dirname, '../config/google-cloud-key.json'), // Ajusta la ruta si es necesario
+  projectId: 'divine-booking-440417-d6', // Reemplaza con tu project ID
+});
+
+const bucket = require('../config/gcs'); // Carga la configuración del bucket
+
 
 // 📌 Validación de contraseña en el backend
 const validatePassword = (password) => {
@@ -12,90 +23,75 @@ const validatePassword = (password) => {
   return regex.test(password);
 };
 
-// 📌 Configuración de multer para guardar los avatares en la carpeta `uploads`
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-      cb(null, 'uploads/'); // Carpeta donde se guardarán los archivos
-  },
-  filename: (req, file, cb) => {
-      cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
-
-const upload = multer({ storage: storage });
+// 📌 Configuración de multer para carga en memoria
+const multerStorage = multer.memoryStorage();
+const upload = multer({ storage: multerStorage });
 
 // 📌 REGISTRO DE USUARIO
 exports.registerUser = async (req, res) => {
   const { nombre_usuario, email, password } = req.body;
 
   if (!nombre_usuario || !email || !password) {
-      return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    return res.status(400).json({ error: "Todos los campos son obligatorios." });
   }
 
   if (!validatePassword(password)) {
-      return res.status(400).json({
-          error: "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula, un número y un símbolo (.,)"
-      });
+    return res.status(400).json({
+      error: "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula, un número y un símbolo (.,)"
+    });
   }
 
   try {
-      // Verificar si el usuario ya existe
-      const usuarioExistente = await usuariosModel.findUsuarioByEmail(email);
-      if (usuarioExistente) {
-          return res.status(400).json({ error: "El correo ya está registrado." });
-      }
+    // Verificar si el usuario ya existe
+    const usuarioExistente = await usuariosModel.findUsuarioByEmail(email);
+    if (usuarioExistente) {
+      return res.status(400).json({ error: "El correo ya está registrado." });
+    }
 
-      // Hashear la contraseña
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      // 📌 Definir la imagen de perfil por defecto
-      const defaultAvatar = 'uploads/avatar-default.jpg'; // Imagen en la carpeta `uploads`
+    // 📌 Definir la imagen de perfil por defecto
+    const defaultAvatar = 'uploads/avatar-default.jpg';
 
-      // Guardar usuario en la base de datos con la imagen por defecto
-      const newUserId = await usuariosModel.registerUsuario({
-          nombre_usuario,
-          email,
-          password: hashedPassword,
-          avatar: defaultAvatar // Asignar la imagen por defecto
-      });
+    // Guardar usuario en la base de datos con la imagen por defecto
+    const newUserId = await usuariosModel.registerUsuario({
+      nombre_usuario,
+      email,
+      password: hashedPassword,
+      avatar: defaultAvatar
+    });
 
-      res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUserId });
+    res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUserId });
   } catch (err) {
-      console.error('Error en el registro:', err);
-      res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
+    console.error('Error en el registro:', err);
+    res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
   }
 };
-
-// Exportar multer para poder usarlo en el endpoint de actualización de avatar
-exports.upload = upload;
 
 // 📌 INICIAR SESIÓN (LOGIN)
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Buscar usuario por email
     const usuario = await usuariosModel.findUsuarioByEmail(email);
 
     if (!usuario) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Comparar contraseñas encriptadas
     const match = await bcrypt.compare(password, usuario.password);
 
     if (!match) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Generar JWT
     const token = jwt.sign(
       { userId: usuario._id, email: usuario.email },
       process.env.JWT_SECRET,
-      { expiresIn: '12h' } // Token válido por 12 horas
+      { expiresIn: '12h' }
     );
 
-    // Registrar la sesión en la base de datos con el JWT
     const session = {
       usuario_id: usuario._id,
       session_token: token,
@@ -126,7 +122,6 @@ exports.logoutUser = async (req, res) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    // Eliminar la sesión de la base de datos
     const sessionClosed = await usuariosModel.closeSession(token);
 
     if (!sessionClosed) {
@@ -174,9 +169,8 @@ exports.listUsers = async (req, res) => {
 // 📌 GET Usuario por ID (Autenticado)
 exports.getUserById = async (req, res) => {
   try {
-    const userId = req.user.id; // ID extraído del token por el middleware
+    const userId = req.user.id;
 
-    // Usando la función findUsuarioById
     const usuario = await usuariosModel.findUsuarioById(userId);
 
     if (!usuario) {
@@ -187,7 +181,6 @@ exports.getUserById = async (req, res) => {
       id: usuario._id,
       nombre_usuario: usuario.nombre_usuario,
       email: usuario.email,
-      password: usuario.password, // Incluyendo la contraseña hasheada
       avatar: usuario.avatar,
     });
   } catch (err) {
@@ -195,3 +188,47 @@ exports.getUserById = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener información del usuario.' });
   }
 };
+
+// 📌 PUT: Actualizar Avatar
+exports.updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: "No se ha subido ningún archivo." });
+    }
+
+    // Crear nombre único para la imagen
+    const fileName = `${uuidv4()}${path.extname(file.originalname)}`;
+    const blob = bucket.file(fileName);
+    const blobStream = blob.createWriteStream({
+      resumable: false,
+      contentType: file.mimetype,
+    });
+
+    blobStream.on("error", (err) => {
+      console.error("Error al subir al bucket:", err);
+      return res.status(500).json({ message: "Error al subir imagen." });
+    });
+
+    blobStream.on("finish", async () => {
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+
+      await usuariosModel.updateUsuarioAvatar(userId, publicUrl);
+
+      res.status(200).json({
+        message: "Avatar actualizado correctamente.",
+        avatarUrl: publicUrl,
+      });
+    });
+
+    blobStream.end(file.buffer);
+  } catch (error) {
+    console.error("Error al actualizar el avatar:", error);
+    res.status(500).json({ message: "Error al actualizar avatar." });
+  }
+};
+
+// Exportar multer para usar en las rutas
+exports.upload = upload;
