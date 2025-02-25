@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const usuariosModel = require('../models/autenticacionUsuario');
+const multer = require('multer');
+const path = require('path');
 
 const saltRounds = 10;
 
@@ -10,43 +12,62 @@ const validatePassword = (password) => {
   return regex.test(password);
 };
 
+// 📌 Configuración de multer para guardar los avatares en la carpeta `uploads`
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, 'uploads/'); // Carpeta donde se guardarán los archivos
+  },
+  filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ storage: storage });
+
 // 📌 REGISTRO DE USUARIO
 exports.registerUser = async (req, res) => {
   const { nombre_usuario, email, password } = req.body;
 
   if (!nombre_usuario || !email || !password) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios." });
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
   }
 
   if (!validatePassword(password)) {
-    return res.status(400).json({
-      error: "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula, un número y un símbolo (.,)"
-    });
+      return res.status(400).json({
+          error: "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula, un número y un símbolo (.,)"
+      });
   }
 
   try {
-    // Verificar si el usuario ya existe
-    const usuarioExistente = await usuariosModel.findUsuarioByEmail(email);
-    if (usuarioExistente) {
-      return res.status(400).json({ error: "El correo ya está registrado." });
-    }
+      // Verificar si el usuario ya existe
+      const usuarioExistente = await usuariosModel.findUsuarioByEmail(email);
+      if (usuarioExistente) {
+          return res.status(400).json({ error: "El correo ya está registrado." });
+      }
 
-    // Hashear la contraseña
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+      // Hashear la contraseña
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Guardar usuario en la base de datos
-    const newUserId = await usuariosModel.registerUsuario({
-      nombre_usuario,
-      email,
-      password: hashedPassword
-    });    
+      // 📌 Definir la imagen de perfil por defecto
+      const defaultAvatar = 'uploads/avatar-default.jpg'; // Imagen en la carpeta `uploads`
 
-    res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUserId });
+      // Guardar usuario en la base de datos con la imagen por defecto
+      const newUserId = await usuariosModel.registerUsuario({
+          nombre_usuario,
+          email,
+          password: hashedPassword,
+          avatar: defaultAvatar // Asignar la imagen por defecto
+      });
+
+      res.status(201).json({ message: "Usuario registrado exitosamente", userId: newUserId });
   } catch (err) {
-    console.error('Error en el registro:', err);
-    res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
+      console.error('Error en el registro:', err);
+      res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
   }
 };
+
+// Exportar multer para poder usarlo en el endpoint de actualización de avatar
+exports.upload = upload;
 
 // 📌 INICIAR SESIÓN (LOGIN)
 exports.loginUser = async (req, res) => {
