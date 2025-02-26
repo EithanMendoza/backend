@@ -275,6 +275,7 @@ exports.getSolicitudesPendientesTecnicos = async () => {
             _id: 1,
             userId: 1,
             nombre_usuario: "$usuario_info.nombre_usuario", // 🔹 Ahora sí obtenemos el nombre
+            avatar: "$usuario_info.avatar",
             direccion: 1,
             detalles: 1,
             fecha: 1,
