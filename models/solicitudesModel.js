@@ -335,6 +335,7 @@ exports.getSolicitudById = async (solicitudId) => {
             _id: 1,
             userId: 1,
             nombre_usuario: "$usuario_info.nombre_usuario",
+            avatar: "$usuario_info.avatar",
             direccion: 1,
             detalles: 1,
             fecha: 1,
