@@ -32,6 +32,21 @@ exports.findUsuarioByEmail = async (email) => {
   return usuario;
 };
 
+// Actualizar o registrar sesión de usuario
+exports.updateSession = async (usuarioId, token) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  await db.collection('sesiones_usuario').updateOne(
+    { usuario_id: usuarioId },  // 🔥 Buscar por ID de usuario
+    { $set: { session_token: token } }, // 🔥 Solo actualizar el token
+    { upsert: true }  // 🔥 Si no existe, lo crea
+  );
+
+  await client.close();
+};
+
+
 // Registrar sesión de usuario
 exports.registerSession = async (session) => {
   const client = await connectToDatabase();

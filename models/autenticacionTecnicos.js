@@ -45,6 +45,21 @@ exports.findTecnicoByEmail = async (email) => {
   return tecnico;
 };
 
+// **Actualizar o registrar sesión de técnico**
+exports.updateSession = async (tecnicoId, sessionToken) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  await db.collection('sesiones_tecnico').updateOne(
+    { tecnico_id: tecnicoId },  // 🔥 Buscar por ID de técnico
+    { $set: { session_token: sessionToken } }, // 🔥 Solo actualizar el token
+    { upsert: true }  // 🔥 Si no existe, lo crea
+  );
+
+  await client.close();
+};
+
+
 // Registrar sesión de técnico con JWT
 exports.registerSession = async (session) => {
   const client = await connectToDatabase();

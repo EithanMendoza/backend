@@ -100,30 +100,28 @@ exports.iniciarSesionTecnico = async (req, res) => {
       return res.status(401).json({ error: 'Contraseña incorrecta.' });
     }
 
+    // 🔥 Generar token
     const sessionToken = jwt.sign(
       { tecnico_id: tecnico._id, email: tecnico.email }, 
       process.env.JWT_SECRET, 
       { expiresIn: '30d' }
     );
 
-    const session = {
-      tecnico_id: tecnico._id,
-      session_token: sessionToken,
-      tiempo_inicio: new Date(),
-    };
-
-    await tecnicosModel.registerSession(session);
+    // 🔥 Actualizar o crear sesión sin duplicar registros
+    await tecnicosModel.updateSession(tecnico._id, sessionToken);
 
     res.status(200).json({
       mensaje: 'Inicio de sesión exitoso',
       session_token: sessionToken,
       tecnico: { id: tecnico._id, nombre_usuario: tecnico.nombre_usuario, email: tecnico.email },
     });
+
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
     res.status(500).json({ error: 'Error al iniciar sesión.', detalle: error.message });
   }
 };
+
 
 // **Cerrar sesión de técnico**
 exports.cerrarSesionTecnico = async (req, res) => {

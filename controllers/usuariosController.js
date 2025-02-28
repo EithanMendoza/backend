@@ -86,30 +86,28 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
+    // 🔥 Generar nuevo token
     const token = jwt.sign(
       { userId: usuario._id, email: usuario.email },
       process.env.JWT_SECRET,
       { expiresIn: '12h' }
     );
 
-    const session = {
-      usuario_id: usuario._id,
-      session_token: token,
-      tiempo_inicio: new Date(),
-    };
-
-    await usuariosModel.registerSession(session);
+    // 🔥 Actualizar o crear la sesión sin registrar múltiples conexiones
+    await usuariosModel.updateSession(usuario._id, token);
 
     res.status(200).json({
       mensaje: 'Inicio de sesión exitoso',
       token,
       usuario: { id: usuario._id, nombre_usuario: usuario.nombre_usuario, email: usuario.email },
     });
+
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
     res.status(500).json({ error: 'Error al iniciar sesión', detalle: error.message });
   }
 };
+
 
 // 📌 CERRAR SESIÓN (LOGOUT)
 exports.logoutUser = async (req, res) => {
