@@ -48,6 +48,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
   }
 })();
 
+// ✅ RUTA DE PRUEBA CORS
+app.get('/test-cors', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.json({ message: 'CORS funcionando correctamente' });
+});
+
 // Importar rutas
 const autenticacionTecnicosRoutes = require('./routes/autenticacionTecnicos');
 const aceptacionSolicitudRouter = require('./routes/AceptacionSolicitudT');
