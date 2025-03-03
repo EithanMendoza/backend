@@ -8,10 +8,11 @@ const { dbConnect } = require('./database'); // Conexión a MongoDB
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ Configurar CORS para permitir peticiones desde tu frontend en Vercel
+
+// ✅ Aplica CORS antes de cualquier middleware
 const allowedOrigins = [
-  'http://localhost:5173',  // Para pruebas locales
-  'https://air-tecs-web.vercel.app'  // Dominio en producción
+  'http://localhost:5173',  
+  'https://air-tecs-web.vercel.app' 
 ];
 
 app.use(cors({
@@ -22,17 +23,19 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // ✅ Permite envío de cookies y autenticación
+  credentials: true, 
   methods: 'GET,POST,PUT,DELETE,OPTIONS',
   allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
 }));
 
-// Middleware para parsear JSON
+// ✅ Middleware para permitir OPTIONS (preflight requests)
+app.options('*', cors()); 
+
+// ✅ Middleware para parsear JSON
 app.use(express.json());
 
-// ✅ Servir archivos estáticos desde la carpeta 'uploads'
+// ✅ Servir archivos estáticos desde 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // Conexión a MongoDB
 (async () => {
   try {
