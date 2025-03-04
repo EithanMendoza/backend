@@ -28,8 +28,12 @@ app.use(cors({
   allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
 }));
 
-// ✅ Middleware para permitir OPTIONS (preflight requests)
-app.options('*', cors()); 
+// ✅ Middleware para manejar preflight requests
+app.options('*', (req, res) => {
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.sendStatus(200);
+});
 
 // ✅ Middleware para parsear JSON
 app.use(express.json());
