@@ -9,10 +9,10 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 
-// ✅ Aplica CORS antes de cualquier middleware
+// ✅ Definir dominios permitidos (sin "*")
 const allowedOrigins = [
-  'http://localhost:5173',  
-  'https://air-tecs-web.vercel.app' 
+  'http://localhost:5173',
+  'https://air-tecs-web.vercel.app'
 ];
 
 app.use(cors({
@@ -23,15 +23,17 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, 
+  credentials: true, // ✅ Permite cookies y autenticación
   methods: 'GET,POST,PUT,DELETE,OPTIONS',
   allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
 }));
 
 // ✅ Middleware para manejar preflight requests
 app.options('*', (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin); // ✅ Solo permitir orígenes válidos
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true"); // ✅ Permitir credenciales
   res.sendStatus(200);
 });
 
