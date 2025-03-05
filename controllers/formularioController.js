@@ -1,5 +1,6 @@
 const formularioModel = require('../models/formularioModel');
 const { MongoClient, ObjectId } = require('mongodb');
+const notificacionesModel = require('../models/notificacionesModel');
 
 const connectToDatabase = async () => {
   const client = new MongoClient(process.env.MONGO_URI);
@@ -41,7 +42,11 @@ exports.crearSolicitud = async (req, res) => {
       estado: "pendiente",
       monto, // ✅ Nuevo campo agregado
     });
-
+      // 📌 Enviar notificación al usuario
+      await notificacionesModel.crearNotificacion({
+        usuarioId: userId,
+        mensaje: "Tu solicitud de servicio ha sido creada exitosamente.",
+      });
     res.status(201).json({
       mensaje: "Solicitud de servicio creada correctamente",
       solicitudId,
@@ -80,6 +85,19 @@ exports.asignarTecnico = async (req, res) => {
     if (!asignado) {
       return res.status(400).json({ error: 'Solicitud ya fue tomada o no existe.' });
     }
+    // 📌 Obtener el usuario que creó la solicitud
+    const client = await connectToDatabase();
+    const db = client.db("AirTecs3");
+    const solicitud = await db.collection("solicitudes").findOne({ _id: new ObjectId(solicitudId) });
+
+    if (solicitud && solicitud.userId) {
+      // 📌 Notificar al usuario que su solicitud ha sido asignada
+      await notificacionesModel.crearNotificacion({
+        usuarioId: solicitud.userId,
+        mensaje: "Un técnico ha sido asignado a tu solicitud de servicio.",
+      });
+    }
+    await client.close();
 
     res.status(200).json({ mensaje: 'Solicitud asignada al técnico correctamente.' });
   } catch (err) {
@@ -87,13 +105,34 @@ exports.asignarTecnico = async (req, res) => {
     res.status(500).json({ error: 'Error al asignar técnico', detalle: err.message });
   }
 };
-// Eliminar solicitudes expiradas (cron job)
 exports.eliminarSolicitudesExpiradas = async (req, res) => {
   try {
-      const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
-      res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
+    const client = await connectToDatabase();
+    const db = client.db("AirTecs3");
+
+    // 📌 Buscar las solicitudes expiradas antes de eliminarlas
+    const fechaActual = new Date();
+    const solicitudesExpiradas = await db.collection("solicitudes")
+      .find({ fecha: { $lte: fechaActual }, estado: "pendiente" })
+      .toArray();
+
+    const eliminadas = await formularioModel.eliminarSolicitudesExpiradas();
+
+    // 📌 Notificar a los usuarios de las solicitudes eliminadas
+    for (const solicitud of solicitudesExpiradas) {
+      if (solicitud.userId) {
+        await notificacionesModel.crearNotificacion({
+          usuarioId: solicitud.userId,
+          mensaje: "Tu solicitud ha expirado y ha sido eliminada.",
+        });
+      }
+    }
+
+    await client.close();
+
+    res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} solicitudes expiradas.` });
   } catch (err) {
-      console.error('Error al eliminar solicitudes expiradas:', err);
-      res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
+    console.error('Error al eliminar solicitudes expiradas:', err);
+    res.status(500).json({ error: 'Error al eliminar solicitudes expiradas', detalle: err.message });
   }
 };

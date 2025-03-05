@@ -1,59 +1,67 @@
-const notificacionesModel = require('../models/notificaciones');
+const notificacionesModel = require('../models/notificacionesModel');
 
-// Obtener notificaciones para el usuario autenticado
-exports.getNotificaciones = async (req, res) => {
-  const token = req.headers['authorization'];
-
+// 📌 Crear una notificación (se usará dentro de otros controladores)
+exports.crearNotificacion = async (req, res) => {
   try {
-    const userId = req.user.id; // Se asume que el middleware de autenticación añade el userId al objeto req
+    const { usuarioId, tecnicoId, mensaje } = req.body;
 
-    const notificaciones = await notificacionesModel.getNotificacionesByUser(userId);
+    if (!usuarioId && !tecnicoId) {
+      return res.status(400).json({ error: "Debe enviarse un usuarioId o un tecnicoId." });
+    }
 
+    await notificacionesModel.crearNotificacion({ usuarioId, tecnicoId, mensaje });
+
+    res.status(201).json({ mensaje: "Notificación creada correctamente." });
+  } catch (error) {
+    console.error("❌ Error al crear la notificación:", error);
+    res.status(500).json({ error: "Error interno al crear la notificación." });
+  }
+};
+
+
+
+// 📌 Obtener notificaciones SOLO del usuario o técnico autenticado
+exports.obtenerNotificaciones = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.tecnico?.id;  // Obtener ID del usuario o técnico autenticado
+    const esTecnico = !!req.tecnico; // Determinar si es técnico
+
+    if (!userId) {
+      return res.status(400).json({ error: "ID de usuario o técnico no encontrado." });
+    }
+
+    const notificaciones = await notificacionesModel.obtenerNotificaciones(userId, esTecnico);
     res.status(200).json(notificaciones);
-  } catch (err) {
-    console.error('Error al obtener las notificaciones:', err);
-    res.status(500).json({ error: 'Error al obtener las notificaciones', detalle: err.message });
+  } catch (error) {
+    console.error("❌ Error al obtener notificaciones:", error);
+    res.status(500).json({ error: "Error interno al obtener notificaciones." });
   }
 };
 
-// Marcar notificaciones como leídas
-exports.markNotificacionesAsRead = async (req, res) => {
-  const { ids } = req.body;
-  const userId = req.user.id;
-
-  if (!ids || !Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ error: 'Debe proporcionar una lista de IDs de notificación.' });
-  }
-
+// 📌 Marcar una notificación como leída
+exports.marcarNotificacionLeida = async (req, res) => {
   try {
-    const modifiedCount = await notificacionesModel.markNotificacionesAsRead(userId, ids);
+    const { notificacionId } = req.params;
 
-    if (modifiedCount === 0) {
-      return res.status(404).json({ error: 'No se encontraron notificaciones para actualizar.' });
+    const resultado = await notificacionesModel.marcarNotificacionLeida(notificacionId);
+    if (!resultado) {
+      return res.status(404).json({ error: "Notificación no encontrada." });
     }
 
-    res.status(200).json({ mensaje: 'Notificaciones marcadas como leídas correctamente.' });
-  } catch (err) {
-    console.error('Error al marcar las notificaciones como leídas:', err);
-    res.status(500).json({ error: 'Error al marcar las notificaciones como leídas', detalle: err.message });
+    res.status(200).json({ mensaje: "Notificación marcada como leída." });
+  } catch (error) {
+    console.error("❌ Error al marcar la notificación como leída:", error);
+    res.status(500).json({ error: "Error interno al marcar la notificación como leída." });
   }
 };
 
-// Eliminar notificación específica
-exports.deleteNotificacion = async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.id;
-
+// 📌 Eliminar notificaciones expiradas (cron job)
+exports.eliminarNotificacionesExpiradas = async (req, res) => {
   try {
-    const deleted = await notificacionesModel.deleteNotificacion(userId, id);
-
-    if (!deleted) {
-      return res.status(404).json({ error: 'Notificación no encontrada o ya eliminada.' });
-    }
-
-    res.status(200).json({ mensaje: 'Notificación eliminada correctamente.' });
-  } catch (err) {
-    console.error('Error al eliminar la notificación:', err);
-    res.status(500).json({ error: 'Error al eliminar la notificación', detalle: err.message });
+    const eliminadas = await notificacionesModel.eliminarNotificacionesExpiradas();
+    res.status(200).json({ mensaje: `Se eliminaron ${eliminadas} notificaciones expiradas.` });
+  } catch (error) {
+    console.error("❌ Error al eliminar notificaciones expiradas:", error);
+    res.status(500).json({ error: "Error interno al eliminar notificaciones expiradas." });
   }
 };

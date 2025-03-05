@@ -2,9 +2,25 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const tecnicosModel = require('../models/autenticacionTecnicos');
 const { MongoClient, ObjectId } = require('mongodb'); // Asegúrate de que esta línea esté presente
+const multer = require('multer');
+const path = require('path');
+const { Storage } = require('@google-cloud/storage');
+const { v4: uuidv4 } = require('uuid');
 
 
 const saltRounds = 10;
+
+// 📌 Configuración de multer para carga en memoria
+const multerStorage = multer.memoryStorage();
+const upload = multer({ storage: multerStorage });
+
+// 📌 Configuración de Google Cloud Storage
+const storage = new Storage({
+  keyFilename: path.join(__dirname, '../config/google-cloud-key.json'), // Ajusta la ruta si es necesario
+  projectId: 'divine-booking-440417-d6', // Reemplaza con tu project ID
+});
+
+const bucket = require('../config/gcs'); // Carga la configuración del bucket
 
 // **Obtener Perfil del Técnico Autenticado**
 // Controlador para obtener el perfil del técnico
@@ -161,5 +177,53 @@ exports.listTecnicos = async (req, res) => {
   }
 };
 
+// 📌 PUT: Actualizar Avatar del Técnico
+exports.updateAvatarTecnico = async (req, res) => {
+  try {
+    const tecnicoId = req.tecnico?.id; // 🔥 Se asegura que venga de `req.tecnico`
+    const file = req.file;
+
+    if (!tecnicoId) {
+      return res.status(400).json({ message: "ID del técnico no encontrado en la sesión." });
+    }
+
+    if (!file) {
+      return res.status(400).json({ message: "No se ha subido ningún archivo." });
+    }
+
+    // Crear nombre único para la imagen
+    const fileName = `${uuidv4()}${path.extname(file.originalname)}`;
+    const blob = bucket.file(fileName);
+    const blobStream = blob.createWriteStream({
+      resumable: false,
+      contentType: file.mimetype,
+    });
+
+    blobStream.on("error", (err) => {
+      console.error("Error al subir al bucket:", err);
+      return res.status(500).json({ message: "Error al subir imagen." });
+    });
+
+    blobStream.on("finish", async () => {
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+
+      // 🔥 Actualizar el avatar en la base de datos para el técnico
+      await tecnicosModel.updateTecnicoAvatar(tecnicoId, publicUrl);
+
+      res.status(200).json({
+        message: "Avatar actualizado correctamente.",
+        avatarUrl: publicUrl,
+      });
+    });
+
+    blobStream.end(file.buffer);
+  } catch (error) {
+    console.error("Error al actualizar el avatar:", error);
+    res.status(500).json({ message: "Error al actualizar avatar." });
+  }
+};
+
+// Exportar multer para usar en las rutas
+exports.upload = upload;
 
 

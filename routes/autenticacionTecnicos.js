@@ -15,4 +15,7 @@ router.post('/logout', verificarTecnico, tecnicosController.cerrarSesionTecnico)
 // Ruta para listar técnicos con paginación
 router.get('/list', tecnicosController.listTecnicos);
 
+// 📌 **Actualizar Avatar del Técnico (PUT)**
+router.put("/update-avatar", verificarTecnico, tecnicosController.upload.single("avatar"), tecnicosController.updateAvatarTecnico);
+
 module.exports = router;

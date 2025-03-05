@@ -84,3 +84,16 @@ exports.closeSession = async (sessionToken) => {
   await client.close();
   return result.modifiedCount > 0;
 };
+
+// 📌 **Actualizar URL del avatar del técnico**
+exports.updateTecnicoAvatar = async (tecnicoId, avatarUrl) => {
+  const client = await connectToDatabase();
+  const db = client.db("AirTecs3");
+
+  await db.collection("tecnicos_servicio").updateOne(
+    { _id: new ObjectId(tecnicoId) },
+    { $set: { avatar: avatarUrl } }
+  );
+
+  await client.close();
+};
