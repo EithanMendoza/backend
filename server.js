@@ -76,6 +76,8 @@ const solicitudesTecnicosRoutes = require('./routes/solicitudesTecnicos');
 const conektaRoutes = require('./routes/ConektaRoutes');
 const pagosRoutes = require('./routes/pago');
 const pagoRoutes = require('./routes/pagos');
+// 🔥 **Importar las rutas de notificaciones**
+const notificacionesRoutes = require('./routes/notificaciones');
 
 // Configurar rutas
 app.use('/autenticacionTecnicos', autenticacionTecnicosRoutes);
@@ -93,6 +95,8 @@ app.use('/api/pagos', conektaRoutes);
 app.use('/pagos', pagosRoutes);
 app.use('/pago', pagoRoutes);
 app.use('/solicitudes-tecnicos', solicitudesTecnicosRoutes);
+// 📌 **Rutas de Notificaciones**
+app.use('/notificaciones', notificacionesRoutes);
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {
