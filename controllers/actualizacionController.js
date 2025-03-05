@@ -1,5 +1,5 @@
 const progresoModel = require('../models/progresoModel');
-const notificacionesModel = require('../models/notificaciones');
+const notificacionesModel = require('../models/notificacionesModel');
 
 // ✅ Definir los estados del servicio en orden
 const ordenEstados = ['en_camino', 'en_lugar', 'en_proceso', 'finalizado'];
@@ -15,25 +15,25 @@ exports.actualizarEstadoServicio = async (req, res) => {
   }
 
   try {
-    // ✅ Verificar el código de confirmación solo para `en_proceso` y `finalizado`
-if (['en_lugar', 'finalizado'].includes(estado)) {
-  if (!codigoConfirmacion) {
-    return res.status(400).json({ error: 'Se requiere un código de confirmación para este estado.' });
-  }
+    // ✅ Verificar el código de confirmación solo para `en_lugar` y `finalizado`
+    if (['en_lugar', 'finalizado'].includes(estado)) {
+      if (!codigoConfirmacion) {
+        return res.status(400).json({ error: 'Se requiere un código de confirmación para este estado.' });
+      }
 
-  // 🔥 Asegurar que comparamos con el campo correcto en la BD
-  const solicitud = await progresoModel.obtenerSolicitudPorId(solicitudId);
-  if (!solicitud) {
-    return res.status(404).json({ error: 'Solicitud no encontrada.' });
-  }
+      // 🔥 Asegurar que comparamos con el campo correcto en la BD
+      const solicitud = await progresoModel.obtenerSolicitudPorId(solicitudId);
+      if (!solicitud) {
+        return res.status(404).json({ error: 'Solicitud no encontrada.' });
+      }
 
-  console.log("📌 Código guardado en la BD:", solicitud.codigo);
-  console.log("📩 Código recibido en la petición:", codigoConfirmacion);
+      console.log("📌 Código guardado en la BD:", solicitud.codigo);
+      console.log("📩 Código recibido en la petición:", codigoConfirmacion);
 
-  if (solicitud.codigo !== codigoConfirmacion) {
-    return res.status(400).json({ error: 'Código de confirmación incorrecto.' });
-  }
-}
+      if (solicitud.codigo !== codigoConfirmacion) {
+        return res.status(400).json({ error: 'Código de confirmación incorrecto.' });
+      }
+    }
 
     // ✅ Verificar el orden de los estados
     const ultimoEstado = await progresoModel.obtenerUltimoEstado(solicitudId);
@@ -50,12 +50,38 @@ if (['en_lugar', 'finalizado'].includes(estado)) {
       return res.status(500).json({ error: 'Error interno: No se encontró el user_id asociado a la solicitud.' });
     }
 
-    // ✅ Registrar el progreso
+    // ✅ Registrar el progreso en la BD
     await progresoModel.registrarProgreso(solicitudId, tecnicoId, estado, detalles);
 
-    // ✅ Crear una notificación para el usuario
-    const mensaje = `El estado de tu servicio ha cambiado a: ${estado}. ${detalles || ''}`;
-    await notificacionesModel.crearNotificacion(userId, mensaje);
+    // 📌 **Crear la notificación según el estado**
+    let mensaje = '';
+    switch (estado) {
+      case 'en_camino':
+        mensaje = 'El técnico ya está en camino a tu domicilio.';
+        break;
+      case 'en_lugar':
+        mensaje = 'El técnico ha llegado al lugar del servicio.';
+        break;
+      case 'en_proceso':
+        mensaje = 'Tu servicio está en proceso.';
+        break;
+      case 'finalizado':
+        mensaje = 'Tu servicio ha sido finalizado. ¡Gracias por confiar en nosotros!';
+        break;
+      default:
+        mensaje = `El estado de tu servicio ha cambiado a: ${estado}.`;
+    }
+
+    // ✅ Agregar detalles al mensaje si existen
+    if (detalles) {
+      mensaje += ` Detalles: ${detalles}`;
+    }
+
+    // 📌 **Enviar la notificación al usuario**
+    await notificacionesModel.crearNotificacion({
+      usuarioId: userId,
+      mensaje,
+    });
 
     res.status(200).json({ mensaje: 'Estado del servicio y notificación actualizados correctamente.' });
   } catch (err) {
