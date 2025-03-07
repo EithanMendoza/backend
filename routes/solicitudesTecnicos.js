@@ -4,7 +4,7 @@ const solicitudesController = require('../controllers/solicitudesController');
 
 // ✅ Nueva ruta para técnicos: Obtener solicitudes pendientes con info de usuario y servicio
 router.get('/pendientes-tecnicos', solicitudesController.getSolicitudesPendientesTecnicos);
-
+router.get('/pagados-tecnicos', solicitudesController.getSolicitudesPagadas);
 
 
 module.exports = router;

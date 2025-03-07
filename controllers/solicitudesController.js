@@ -151,3 +151,35 @@ exports.getSolicitudById = async (req, res) => {
     res.status(500).json({ error: "Error al obtener la solicitud", detalle: err.message });
   }
 };
+
+// 📌 GET: Obtener todas las solicitudes pagadas del técnico autenticado
+exports.getSolicitudesPagadas = async (req, res) => {
+  try {
+    const tecnicoId = req.tecnico.id; // 🔥 ID del técnico autenticado
+
+    if (!tecnicoId) {
+      return res.status(400).json({ error: "ID de técnico no encontrado en la sesión." });
+    }
+
+    const client = new MongoClient(process.env.MONGO_URI);
+    await client.connect();
+    const db = client.db("AirTecs3");
+    const solicitudesCollection = db.collection("solicitudes_servicio");
+
+    // 🔥 Buscar solicitudes donde el estado sea "pagado" y el técnico asignado sea el autenticado
+    const solicitudesPagadas = await solicitudesCollection
+      .find({ estado: "pagado", tecnicoId: new ObjectId(tecnicoId) })
+      .toArray();
+
+    await client.close();
+
+    if (solicitudesPagadas.length === 0) {
+      return res.status(404).json({ mensaje: "No hay solicitudes pagadas para este técnico." });
+    }
+
+    res.status(200).json(solicitudesPagadas);
+  } catch (error) {
+    console.error("❌ Error al obtener solicitudes pagadas:", error);
+    res.status(500).json({ error: "Error interno al obtener solicitudes pagadas." });
+  }
+};
