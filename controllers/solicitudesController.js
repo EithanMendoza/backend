@@ -154,45 +154,20 @@ exports.getSolicitudById = async (req, res) => {
 
 // 📌 GET: Obtener solicitudes pagadas del técnico autenticado usando el token
 exports.getSolicitudesPagadas = async (req, res) => {
+  const tecnicoId = req.tecnico ? req.tecnico.id : null;
+
+  if (!tecnicoId) {
+    return res.status(403).json({ error: 'Acceso no autorizado.' });
+  }
+
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No autorizado: Token no proporcionado." });
-    }
+    // Usamos el modelo para obtener las solicitudes aceptadas con lookup
+    const solicitudes = await solicitudesModel.getSolicitudesPagadasPorTecnico(tecnicoId);
 
-    const token = authHeader.split(" ")[1]; // Extraer el token
-    let tecnicoId;
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      tecnicoId = decoded.tecnico_id; // Extraer el ID del técnico desde el token
-    } catch (error) {
-      return res.status(403).json({ error: "Token inválido o expirado." });
-    }
-
-    if (!tecnicoId) {
-      return res.status(400).json({ error: "No se encontró el ID del técnico en el token." });
-    }
-
-    const client = new MongoClient(process.env.MONGO_URI);
-    await client.connect();
-    const db = client.db("AirTecs3");
-    const solicitudesCollection = db.collection("solicitudes_servicio");
-
-    // 🔥 Buscar solicitudes donde el estado sea "pagado" y el técnico asignado sea el autenticado
-    const solicitudesPagadas = await solicitudesCollection
-      .find({ estado: "pagado", tecnicoId: new ObjectId(tecnicoId) })
-      .toArray();
-
-    await client.close();
-
-    if (solicitudesPagadas.length === 0) {
-      return res.status(404).json({ mensaje: "No hay solicitudes pagadas para este técnico." });
-    }
-
-    res.status(200).json(solicitudesPagadas);
-  } catch (error) {
-    console.error("❌ Error al obtener solicitudes pagadas:", error);
-    res.status(500).json({ error: "Error interno al obtener solicitudes pagadas." });
+    // Devuelvo las solicitudes con los datos agregados mediante el lookup
+    res.status(200).json(solicitudes);
+  } catch (err) {
+    console.error('Error al obtener las solicitudes aceptadas:', err);
+    res.status(500).json({ error: 'Error al obtener las solicitudes aceptadas.', detalle: err.message });
   }
 };

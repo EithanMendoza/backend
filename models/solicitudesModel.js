@@ -356,3 +356,66 @@ exports.getSolicitudById = async (solicitudId) => {
   }
 };
 
+// Obtener solicitudes pagadas por un técnico con lookup para nombre del servicio y usuario
+exports.getSolicitudesPagadasPorTecnico = async (tecnicoId) => {
+  const client = await connectToDatabase();
+  const db = client.db('AirTecs3');
+
+  try {
+    console.log("🛠 Buscando solicitudes pagadas para el técnico:", tecnicoId);
+
+    const solicitudes = await db.collection('solicitudes_servicio').aggregate([
+      {
+        $match: {
+          tecnico_id: new ObjectId(tecnicoId), // 🔥 Filtra por técnico autenticado
+          estado: "pagado" // 🔥 Solo traer solicitudes que están en estado "pagado"
+        }        
+      },
+      {
+        $lookup: {
+          from: 'tipos_servicio',
+          let: { tipoServicioId: { $toString: "$tipo_servicio_id" } },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$tipoServicioId"] } } }
+          ],
+          as: 'servicio_info',
+        },
+      },
+      { $unwind: { path: '$servicio_info', preserveNullAndEmptyArrays: true } },
+      // 🔹 Lookup para obtener información del usuario (con conversión a ObjectId)
+      {
+        $lookup: {
+          from: 'usuarios', // La colección donde están los usuarios
+          let: { usuarioId: { $toObjectId: "$userId" } }, // 🔹 Convertimos userId a ObjectId
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$usuarioId"] } } }
+          ],
+          as: 'usuario_info',
+        },
+      },
+      { $unwind: { path: '$usuario_info', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          tipo_servicio: 1,
+          detalles: 1,
+          direccion: 1,
+          fecha: 1,
+          hora: 1,
+          codigo: 1,
+          marca_ac: 1,    // Nuevo campo
+          tipo_servicio: { $ifNull: ["$servicio_info.nombre_servicio", "No especificado"] },
+          nombre_usuario: "$usuario_info.nombre_usuario", // 🔹 Ahora sí obtenemos el nombre
+          avatar: "$usuario_info.avatar",
+        }
+      }
+    ]).toArray();
+
+    console.log("📋 Solicitudes pagadas encontradas:", JSON.stringify(solicitudes, null, 2));
+
+    return solicitudes;
+  } finally {
+    await client.close();
+  }
+};
+
+
