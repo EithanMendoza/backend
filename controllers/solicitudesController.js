@@ -152,13 +152,26 @@ exports.getSolicitudById = async (req, res) => {
   }
 };
 
-// 📌 GET: Obtener todas las solicitudes pagadas del técnico autenticado
+// 📌 GET: Obtener solicitudes pagadas del técnico autenticado usando el token
 exports.getSolicitudesPagadas = async (req, res) => {
   try {
-    const tecnicoId = req.tecnico.id; // 🔥 ID del técnico autenticado
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No autorizado: Token no proporcionado." });
+    }
+
+    const token = authHeader.split(" ")[1]; // Extraer el token
+    let tecnicoId;
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      tecnicoId = decoded.tecnico_id; // Extraer el ID del técnico desde el token
+    } catch (error) {
+      return res.status(403).json({ error: "Token inválido o expirado." });
+    }
 
     if (!tecnicoId) {
-      return res.status(400).json({ error: "ID de técnico no encontrado en la sesión." });
+      return res.status(400).json({ error: "No se encontró el ID del técnico en el token." });
     }
 
     const client = new MongoClient(process.env.MONGO_URI);
